@@ -142,6 +142,20 @@ void PX4Controller::APMRoverWaypoint::executeCommand(const PX4Controller& ctl, c
     ctl.local_pose_pub_.publish(goto_pose);
 }
 
+bool PX4Controller::ArduCopter::init(ros::NodeHandle& nh)
+{
+    is_initialized_ = true;
+    return true;
+//    takeoff_client_ = nh.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/takeoff");
+}
+
+void PX4Controller::ArduCopter::executeCommand(const PX4Controller& ctl, const geometry_msgs::PoseStamped& goto_pose,
+                                         float /*linear_control_val*/, float /*angular_control_val*/, bool /*has_command*/)
+{
+    ROS_ASSERT(is_initialized_);
+    // Publish pose update to MAVROS
+    ctl.local_pose_pub_.publish(goto_pose);
+}
 
 void PX4Controller::px4StateCallback(const mavros_msgs::State::ConstPtr &msg)
 {
@@ -393,6 +407,11 @@ bool PX4Controller::parseArguments(const ros::NodeHandle& nh)
         vehicle_ = std::make_unique<APMRoverRC>();
     else if (vehicle_type == "apmroverwaypoint")
         vehicle_ = std::make_unique<APMRoverWaypoint>();
+    else if (vehicle_type == "ardupilot")
+    {
+        vehicle_ = std::make_unique<ArduCopter>();
+        takeoff_cmd_required_ = true;
+    }
     else
     {
         ROS_ERROR("Unknown vehicle type: %s", vehicle_type.c_str());
@@ -501,6 +520,7 @@ bool PX4Controller::init(ros::NodeHandle& nh)
 
     arming_client_ = nh.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
     setmode_client_ = nh.serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
+    takeoff_client_ = nh.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/takeoff");
 
     // Subscribe to a JOY (joystick) node if available
     joy_sub_ = nh.subscribe<sensor_msgs::Joy>("/joy", command_queue_size_, &PX4Controller::joystickCallback, this);
@@ -634,9 +654,13 @@ bool PX4Controller::arm()
     mavros_msgs::CommandBool arm_cmd;
     arm_cmd.request.value = true;
 
+    mavros_msgs::CommandTOL takeoff_cmd;
+    takeoff_cmd.request.altitude = takeoff_altitude_gain_;
+
     ros::Time last_request = ros::Time::now();
     ros::Time init_start   = ros::Time::now();
     ROS_INFO("Switching to %s and arming...", vehicle_->getOffboardModeName().c_str());
+    bool armed = false;
     while ( ros::ok() && (ros::Time::now() - init_start < ros::Duration(wait_for_arming_sec_)) )
     {
         geometry_msgs::PoseStamped current_pose = current_pose_; // current_pose_ is updated elsewhere, use its fixed time value for computations
@@ -659,7 +683,9 @@ bool PX4Controller::arm()
                 {
                     ROS_INFO("Vehicle armed");
                     controller_state_ = ControllerState::Armed;
-                    return true;
+                    armed = true;
+                    break;
+                    last_request = ros::Time::now();
                 }
                 last_request = ros::Time::now();
             }
@@ -667,7 +693,8 @@ bool PX4Controller::arm()
             {
                 ROS_INFO("Vehicle was already armed");
                 controller_state_ = ControllerState::Armed;
-                return true;
+                armed = true;
+                break;
             }
         }
 
@@ -688,6 +715,29 @@ bool PX4Controller::arm()
         rate.sleep();
     }
 
+    // ArduCopter can not takeoff by giving a position above the ground using position control in GUIDED mode, need to use takeoff service
+    if( armed)
+    {
+        if( takeoff_cmd_required_)
+        {
+            while ( ros::ok() && (ros::Time::now() - init_start < ros::Duration(wait_for_arming_sec_)) )
+            {
+                if( takeoff_cmd.response.result)
+                    return true;
+                else if( ros::Time::now() - last_request > ros::Duration(1.0))
+                {
+                    ROS_INFO("Sending takeoff for ArduCopter");
+                    if(takeoff_client_.call(takeoff_cmd) && takeoff_cmd.response.success && takeoff_cmd.response.result)
+                        return true;
+                    last_request = ros::Time::now();
+                }
+                else
+                    ROS_INFO_THROTTLE( 0.5, "Waiting to send takeoff for ArduCopter");
+            }
+        }
+        else
+            return true;
+    }
     return false;
 }
 

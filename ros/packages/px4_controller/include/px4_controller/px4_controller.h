@@ -19,6 +19,7 @@
 #include <sensor_msgs/Image.h>
 
 #include <mavros_msgs/CommandBool.h>
+#include <mavros_msgs/CommandTOL.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
 #include <mavros_msgs/OverrideRCIn.h>
@@ -110,6 +111,15 @@ private:
                             float /*linear_control_val*/, float /*angular_control_val*/, bool /*has_command*/) override;
     };
 
+    class ArduCopter: public Vehicle
+    {
+        std::string getName()             override { return "ArduCopter"; }
+        std::string getOffboardModeName() override { return "GUIDED"; }
+        bool init(ros::NodeHandle& nh) override;
+        void executeCommand(const PX4Controller& ctl, const geometry_msgs::PoseStamped& goto_pose,
+                            float /*linear_control_val*/, float /*angular_control_val*/, bool /*has_command*/) override;
+    };
+
 private:
     const int QUEUE_SIZE = 5;
     const int DNN_FRAME_WIDTH = 320;
@@ -160,6 +170,7 @@ private:
     float turn_angle_   = 0;   // used for filtering
     long dnn_commands_count_;  // number of executed dnn commands
     long joy_commands_count_;  // number of executed teleop commands
+    bool takeoff_cmd_required_ = false; // only used for ArduCopter which needs the takeoff command to be sent on a separate ros service
 
     // Control commands
     // linear control and angular control should be coordinates of a point on a unit circle (controllers produce them naturally)
@@ -200,6 +211,7 @@ private:
     ros::Publisher local_pose_pub_;
     ros::ServiceClient arming_client_;
     ros::ServiceClient setmode_client_;
+    ros::ServiceClient takeoff_client_;
     ros::Subscriber joy_sub_;
     ros::Subscriber dnn_sub_;
     ros::Subscriber objdnn_sub_;
