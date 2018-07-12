@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<launch>
+	<arg name="vehicle_type" default="ardupilot" />
+	<arg name="alt_gain" default="2" />
+	<arg name="joy_type" default="xbox_wired" />
+	<node pkg="px4_controller" type="px4_controller_node" name="ardupilot_controller" output="screen">
+		<param name="altitude_gain" value="$(arg alt_gain)" />
+		<param name="vehicle_type" value="$(arg vehicle_type)" />
+		<param name="joy_type" value="$(arg joy_type)" />
+	</node>
+</launch>

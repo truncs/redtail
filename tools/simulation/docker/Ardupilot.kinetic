@@ -135,6 +135,10 @@ RUN apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C3
         ros-kinetic-ros-base            \
         ros-kinetic-joy                 \
         ros-kinetic-rviz                \
+	ros-kinetic-rqt			\
+	ros-kinetic-rqt-common-plugins	\
+	ros-kinetic-rqt-robot-plugins	\
+	python-catkin-tools		\
     && apt-get -y autoremove            \
     && apt-get clean autoclean          \
     && rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
@@ -172,11 +176,11 @@ WORKDIR ${HOME}
 COPY ${TENSORRT_TAR_FILE} ${HOME}
 
 ENV TENSORRT_BASE_DIR /opt/tensorrt
-ENV TENSORRT_VER      4.0.16
+ENV TENSORRT_VER      3.0.4
 ENV TENSORRT_DIR      ${TENSORRT_BASE_DIR}/TensorRT-${TENSORRT_VER}
 
 RUN mkdir ${TENSORRT_BASE_DIR} \
-    && tar -zxf ${TENSORRT_TAR_FILE} -C ${TENSORRT_BASE_DIR} \
+    && tar -xf ${TENSORRT_TAR_FILE} -C ${TENSORRT_BASE_DIR} \
     && echo "export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}:${TENSORRT_DIR}/lib" >> ${HOME}/.bashrc \
     && echo "export LIBRARY_PATH=\${LIBRARY_PATH}:${TENSORRT_DIR}/lib" >> ${HOME}/.bashrc       \
     && echo "export CPATH=\${CPATH}:${TENSORRT_DIR}/include" >> ${HOME}/.bashrc \
@@ -184,11 +188,11 @@ RUN mkdir ${TENSORRT_BASE_DIR} \
 
 # Setup catkin workspace
 ENV CATKIN_WS ${HOME}/ws
-COPY ./scripts/init_workspace.sh ${HOME}
-RUN ${HOME}/init_workspace.sh
+COPY ./scripts/init_ap_workspace.sh ${HOME}
+RUN ${HOME}/init_ap_workspace.sh
 
 # To be run by a user after creating a container.
-COPY ./scripts/build_redtail.sh ${HOME}
+COPY ./scripts/build_ap_redtail.sh ${HOME}
 
 ENV CCACHE_CPP2=1
 ENV CCACHE_MAXSIZE=1G

@@ -12,13 +12,16 @@
 
     <arg name="frame_id"   default="/tf_frame" />
 
-    <arg name="video_path"     default="/data/dataset/0.mp4" />
+    <arg name="media_path"     default="/data/0.jpg" />
+    <arg name="is_vide"     default="false" />
 
     <arg name="host_ip"         default="10.42.0.211" />
     <!-- Start the video publishin node -->
     <node pkg="image_pub" type="image_pub_node" name="image_pub_node" output="screen">
-        <param name="frame_id"        value="$(arg frame_id)" />
-        <param name="img_path"        value="$(arg video_path)" />
+        <param name="frame_id"        	value="$(arg frame_id)" />
+        <param name="img_path"        	value="$(arg media_path)" />
+        <param name="pub_rate"		value="30" 	unless="$(arg is_vide)" />
+        <param name="repeat"		value="true" 	unless="$(arg is_vide)" />
     </node>
 
     <!-- Start the caffe_ros node -->
