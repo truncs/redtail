@@ -33,7 +33,7 @@ bool PX4Controller::Drone::init(ros::NodeHandle& nh)
 }
 
 void PX4Controller::Drone::executeCommand(const PX4Controller& ctl, const geometry_msgs::PoseStamped& goto_pose,
-                                          float /*linear_control_val*/, float /*angular_control_val*/, bool /*has_command*/)
+                            float /*linear_control_val*/, float /*altitude_control_val*/, float /*angular_control_val*/, bool /*has_command*/)
 {
     ROS_ASSERT(is_initialized_);
     // Publish pose update to MAVROS
@@ -107,7 +107,7 @@ void PX4Controller::APMRoverRC::printArgs()
 }
 
 void PX4Controller::APMRoverRC::executeCommand(const PX4Controller& ctl, const geometry_msgs::PoseStamped& goto_pose,
-                                             float linear_control_val, float angular_control_val, bool has_command)
+                            float linear_control_val, float /*altitude_control_val*/, float angular_control_val, bool has_command)
 {
     ROS_ASSERT(is_initialized_);
 
@@ -135,7 +135,7 @@ bool PX4Controller::APMRoverWaypoint::init(ros::NodeHandle& nh)
 }
 
 void PX4Controller::APMRoverWaypoint::executeCommand(const PX4Controller& ctl, const geometry_msgs::PoseStamped& goto_pose,
-                                          float /*linear_control_val*/, float /*angular_control_val*/, bool /*has_command*/)
+                            float /*linear_control_val*/, float /*altitude_control_val*/, float /*angular_control_val*/, bool /*has_command*/)
 {
     ROS_ASSERT(is_initialized_);
     // Publish pose update to MAVROS
@@ -144,17 +144,39 @@ void PX4Controller::APMRoverWaypoint::executeCommand(const PX4Controller& ctl, c
 
 bool PX4Controller::ArduCopter::init(ros::NodeHandle& nh)
 {
+    const int QUEUE_SIZE = 1;
+    local_vel_pub_ = nh.advertise<mavros_msgs::PositionTarget>("/mavros/setpoint_raw/local", QUEUE_SIZE);
+    if(!local_vel_pub_)
+    {
+        ROS_INFO("Could not advertise to /mavros/setpoint_raw/local");
+        return false;
+    }
+
     is_initialized_ = true;
     return true;
 //    takeoff_client_ = nh.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/takeoff");
 }
 
 void PX4Controller::ArduCopter::executeCommand(const PX4Controller& ctl, const geometry_msgs::PoseStamped& goto_pose,
-                                         float /*linear_control_val*/, float /*angular_control_val*/, bool /*has_command*/)
+                            float linear_control_val, float altitude_control_val, float angular_control_val, bool has_command)
 {
     ROS_ASSERT(is_initialized_);
     // Publish pose update to MAVROS
-    ctl.local_pose_pub_.publish(goto_pose);
+    if( has_command)
+    {
+      mavros_msgs::PositionTarget msg;
+      msg.header.stamp = ros::Time::now();
+      msg.header.frame_id = "map";
+      msg.coordinate_frame = 8;
+      msg.type_mask = 1991;
+      msg.velocity.x = 0;
+      msg.velocity.y = linear_control_val;
+      msg.velocity.z = altitude_control_val;
+      msg.yaw_rate = angular_control_val;
+      local_vel_pub_.publish(msg);
+    }
+    else
+      ctl.local_pose_pub_.publish(goto_pose);
 }
 
 void PX4Controller::px4StateCallback(const mavros_msgs::State::ConstPtr &msg)
@@ -918,7 +940,7 @@ void PX4Controller::spin()
         }
 
         goto_pose.header.stamp = ros::Time::now();
-        vehicle_->executeCommand(*this, goto_pose, linear_control_val, angular_control_val, has_command);
+        vehicle_->executeCommand(*this, goto_pose, linear_control_val*linear_speed_, altitude_control_val, angular_control_val, has_command);
 
         // Log
         tf::quaternionMsgToEigen(goto_pose.pose.orientation, orientation_quaternion);
