@@ -46,7 +46,7 @@ sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 0xB0
 sudo apt-get update
 
 # Install ROS base and MAVROS packages
-sudo apt-get install -y ros-kinetic-ros-base ros-kinetic-mavros ros-kinetic-mavros-extras
+sudo apt-get install -y ros-kinetic-ros-base ros-kinetic-mavros ros-kinetic-mavros-extras ros-kinetic-joy python-catkin-tools
 
 # For some reason, SSL certificates get messed up on TX1 so Python scripts like rosdep will fail. Rehash the certs.
 sudo c_rehash /etc/ssl/certs
@@ -80,8 +80,8 @@ CATKIN_WS=$HOME/ws
 if [ ! -d "$CATKIN_WS" ]; then
     echo "${green}Creating catkin workspace in $CATKIN_WS...${reset}"
     mkdir -p $CATKIN_WS/src
-    cd $CATKIN_WS/src
-    catkin_init_workspace
+    cd $CATKIN_WS
+    catkin init
 fi
 
 # Installing gscam ROS package and its dependencies.
@@ -109,14 +109,14 @@ fi
 
 echo "Building gscam package..."
 cd $CATKIN_WS
-catkin_make -DGSTREAMER_VERSION_1_x=On
+catkin build -DGSTREAMER_VERSION_1_x=On
 
 # Installing redtail ROS packages and dependencies.
 echo "${green}Starting installation of caffe_ros and px4_controller ROS packages...${reset}"
 cd $HOME
 if [ ! -d "$HOME/redtail" ]; then
     echo "Cloning redtail sources..."
-    git clone https://github.com/NVIDIA-Jetson/redtail
+    git clone https://github.com/Voidminded/redtail
 else
     echo "Updating redtail sources..."
     cd redtail
@@ -128,6 +128,7 @@ if [ ! -L "$CATKIN_WS/src/caffe_ros" ]; then
     # Create symlinks to catkin workspace.
     ln -s $HOME/redtail/ros/packages/caffe_ros $CATKIN_WS/src/
     ln -s $HOME/redtail/ros/packages/px4_controller $CATKIN_WS/src/
+    ln -s $HOME/redtail/ros/packages/redtail_debug $CATKIN_WS/src/
 fi
 
 echo "Installing dependencies..."
@@ -135,10 +136,8 @@ cd $HOME
 sudo apt-get install -y ros-kinetic-angles
 
 cd $CATKIN_WS
-echo "Building caffe_ros package..."
-catkin_make caffe_ros_node
-echo "Building px4_controller package..."
-catkin_make px4_controller_node
+echo "Building caffe_ros px4_controller redtail_debug packages..."
+catkin build
 
 # Environment setup.
 echo "source $CATKIN_WS/devel/setup.bash" >> $HOME/.bashrc
