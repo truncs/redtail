@@ -46,7 +46,7 @@ sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 0xB0
 sudo apt-get update
 
 # Install ROS base and MAVROS packages
-sudo apt-get install -y ros-kinetic-ros-base ros-kinetic-mavros ros-kinetic-mavros-extras ros-kinetic-joy python-catkin-tools
+sudo apt-get install -y ros-kinetic-ros-base ros-kinetic-mavros ros-kinetic-mavros-extras ros-kinetic-joy python-catkin-tools tmux
 
 # For some reason, SSL certificates get messed up on TX1 so Python scripts like rosdep will fail. Rehash the certs.
 sudo c_rehash /etc/ssl/certs
@@ -99,12 +99,15 @@ if [ ! -d "$HOME/gscam" ]; then
     echo "Cloning gscam sources..."
     git clone https://github.com/ros-drivers/gscam.git
     cd gscam
-    # Create symlink to catkin workspace.
-    ln -s $HOME/gscam $CATKIN_WS/src/
 else
     echo "Updating gscam sources..."
     cd gscam
     git pull
+fi
+
+if [ ! -L "$CATKIN_WS/src/gscam" ]; then
+    # Create symlink to catkin workspace.
+    ln -s $HOME/gscam $CATKIN_WS/src/
 fi
 
 echo "Building gscam package..."
@@ -116,7 +119,7 @@ echo "${green}Starting installation of caffe_ros and px4_controller ROS packages
 cd $HOME
 if [ ! -d "$HOME/redtail" ]; then
     echo "Cloning redtail sources..."
-    git clone https://github.com/Voidminded/redtail
+    git clone https://github.com/ArduPilot/redtail
 else
     echo "Updating redtail sources..."
     cd redtail
@@ -142,5 +145,9 @@ catkin build
 # Environment setup.
 echo "source $CATKIN_WS/devel/setup.bash" >> $HOME/.bashrc
 source $CATKIN_WS/devel/setup.bash
+
+echo "export ROS_MASTER_URI=http://localhost:11311" >> $HOME/.bashrc
+echo "export ROS_IP=127.0.0.1" >> $HOME/.bashrc
+source $HOME/.bashrc
 
 echo "${green}All done.${reset}"

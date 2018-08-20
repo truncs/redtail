@@ -1,4 +1,4 @@
-# NVIDIA Redtail project
+# ArduPilot support for NVIDIA Redtail project
 
 Autonomous visual navigation components for drones and ground vehicles using deep learning. Refer to [wiki](https://github.com/NVIDIA-Jetson/redtail/wiki) for more information on how to get started.
 
@@ -11,6 +11,7 @@ The project also contains [Stereo DNN](../master/stereoDNN/) models and runtime 
 **CVPR 2018**: we will present our work at [CVPR 2018](http://cvpr2018.thecvf.com/) conference as a part of [Workshop on Autonomous Driving](http://www.wad.ai/index.html). Feel free to stop by and chat.
 
 ## References and Demos
+* [Redtail + ArduPilot SITL + Google maps + Gazebo](https://youtu.be/W93qenM5U4Q)
 * [Stereo DNN, CVPR18 paper](https://arxiv.org/abs/1803.09719), [Stereo DNN video demo](https://youtu.be/0FPQdVOYoAU)
 * [TrailNet Forest Drone Navigation, IROS17 paper](https://arxiv.org/abs/1705.02550), [TrailNet DNN video demo](https://youtu.be/H7Ym3DMSGms)
 * GTC 2017 talk: [slides](http://on-demand.gputechconf.com/gtc/2017/presentation/s7172-nikolai-smolyanskiy-autonomous-drone-navigation-with-deep-learning.pdf), [video](http://on-demand.gputechconf.com/gtc/2017/video/s7172-smolyanskiy-autonomous-drone-navigation-with-deep-learning%20(1).PNG.mp4)
