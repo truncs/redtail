@@ -107,8 +107,6 @@ while true; do
     esac
 done
 
-exit
-
 # Installing gscam ROS package and its dependencies.
 echo "${green}Starting installation of gscam ROS package...${reset}"
 echo "Installing dependencies..."
@@ -116,28 +114,12 @@ sudo apt-get install -y libgstreamer1.0-dev gstreamer1.0-tools libgstreamer-plug
 
 cd $HOME
 # Install gscam dependencies.
-sudo apt-get install -y ros-kinetic-camera-info-manager ros-kinetic-camera-calibration-parsers ros-kinetic-image-transport
+sudo apt-get install -y ros-melodic-camera-info-manager ros-melodic-camera-calibration-parsers ros-melodic-image-transport
 
-# Install gscam from sources rather than apt-get install as the latter installs a lot of redundant stuff.
-cd $HOME
-if [ ! -d "$HOME/gscam" ]; then
-    echo "Cloning gscam sources..."
-    git clone https://github.com/ros-drivers/gscam.git
-    cd gscam
-else
-    echo "Updating gscam sources..."
-    cd gscam
-    git pull
-fi
+# Install gscam
+sudo apt-get install -y ros-melodic-gscam
 
-if [ ! -L "$CATKIN_WS/src/gscam" ]; then
-    # Create symlink to catkin workspace.
-    ln -s $HOME/gscam $CATKIN_WS/src/
-fi
-
-echo "Building gscam package..."
-cd $CATKIN_WS
-catkin build -DGSTREAMER_VERSION_1_x=On
+exit
 
 # Installing redtail ROS packages and dependencies.
 echo "${green}Starting installation of caffe_ros and px4_controller ROS packages...${reset}"
