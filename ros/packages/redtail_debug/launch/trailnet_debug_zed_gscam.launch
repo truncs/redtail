@@ -3,15 +3,15 @@
     redtail debug .launch file for ZED camera which uses gscam node (in case ZED ROS node is not available).
     Note that gscam will not perform image undistortion despite taking calibration YAML file as an argument.
     -->
-    <arg name="prototxt_path" default="/home/nvidia/redtail/models/pretrained/TrailNet_SResNet-18.prototxt"/>
-    <arg name="model_path"    default="/home/nvidia/redtail/models/pretrained/TrailNet_SResNet-18.caffemodel" />
+    <arg name="prototxt_path" default="/home/apsync/redtail/models/pretrained/TrailNet_SResNet-18.prototxt"/>
+    <arg name="model_path"    default="/home/apsync/redtail/models/pretrained/TrailNet_SResNet-18.caffemodel" />
     <arg name="input_layer"  default="data" />
     <arg name="output_layer" default="out" />
     <arg name="data_type"    default="fp16" />
 
     <arg name="frame_id"   default="/tf_frame" />
 
-    <arg name="device"     default="/dev/video1" />
+    <arg name="device"     default="/dev/video0" />
 
     <!-- Defaults are for ZED WVGA -->
     <arg name="img_width"       default="1344" />
@@ -20,7 +20,7 @@
     <!-- Use left ZED camera -->
     <arg name="right_crop" default="$(eval int(0.5 * arg('img_width')))" />
     
-    <arg name="host_ip"         default="10.42.0.211" />
+    <arg name="host_ip"         default="10.0.1.128" />
     <!-- Start the GSCAM node -->
     <node pkg="gscam" type="gscam" name="gscam" output="screen">
         <!-- Use 2 sinks (UDP H.265 streaming + ROS topic) -->

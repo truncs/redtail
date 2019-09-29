@@ -74,7 +74,7 @@ if [ ! -d "$CATKIN_WS" ]; then
     echo "${green}Creating catkin workspace in $CATKIN_WS...${reset}"
     mkdir -p $CATKIN_WS/src
     cd $CATKIN_WS
-    catkin init
+    catkin_make
 fi
 
 # Install camera wrappers and drivers. 
@@ -87,8 +87,9 @@ while true; do
 	   cd $CATKIN_WS/src
            git clone https://github.com/stereolabs/zed-ros-wrapper.git
            cd ../
-           catkin_make
-           source ./devel/setup.bash
+           catkin_make -DCMAKE_BUILD_TYPE=Release
+	   echo source $(pwd)/devel/setup.bash >> ~/.bashrc
+	   source ~/.bashrc
         else
   	   echo "${red}No ZED SDK installation found!"
         fi
@@ -119,14 +120,14 @@ sudo apt-get install -y ros-melodic-camera-info-manager ros-melodic-camera-calib
 # Install gscam
 sudo apt-get install -y ros-melodic-gscam
 
-exit
-
 # Installing redtail ROS packages and dependencies.
+# We are using a fork of Ardupilot-Redtail from my GitHub which includes the
+# adoptions to Jetpack 4.2.x, Ubuntu 18.04, ROS Melodic and ZED Stereo camera 
 echo "${green}Starting installation of caffe_ros and px4_controller ROS packages...${reset}"
 cd $HOME
 if [ ! -d "$HOME/redtail" ]; then
     echo "Cloning redtail sources..."
-    git clone https://github.com/ArduPilot/redtail
+    git clone https://github.com/mtbsteve/redtail.git
 else
     echo "Updating redtail sources..."
     cd redtail
@@ -139,7 +140,11 @@ if [ ! -L "$CATKIN_WS/src/caffe_ros" ]; then
     ln -s $HOME/redtail/ros/packages/caffe_ros $CATKIN_WS/src/
     ln -s $HOME/redtail/ros/packages/px4_controller $CATKIN_WS/src/
     ln -s $HOME/redtail/ros/packages/redtail_debug $CATKIN_WS/src/
+    ln -s $HOME/redtail/ros/packages/stereo_dnn_ros $CATKIN_WS/src/
+    ln -s $HOME/redtail/ros/packages/stereo_dnn_ros_viz $CATKIN_WS/src/
 fi
+
+exit
 
 echo "Installing dependencies..."
 cd $HOME
