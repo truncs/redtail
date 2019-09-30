@@ -74,7 +74,7 @@ if [ ! -d "$CATKIN_WS" ]; then
     echo "${green}Creating catkin workspace in $CATKIN_WS...${reset}"
     mkdir -p $CATKIN_WS/src
     cd $CATKIN_WS
-    catkin_make
+    catkin init
 fi
 
 # Install camera wrappers and drivers. 
@@ -87,7 +87,7 @@ while true; do
 	   cd $CATKIN_WS/src
            git clone https://github.com/stereolabs/zed-ros-wrapper.git
            cd ../
-           catkin_make -DCMAKE_BUILD_TYPE=Release
+           catkin build
 	   echo source $(pwd)/devel/setup.bash >> ~/.bashrc
 	   source ~/.bashrc
         else
@@ -140,15 +140,37 @@ if [ ! -L "$CATKIN_WS/src/caffe_ros" ]; then
     ln -s $HOME/redtail/ros/packages/caffe_ros $CATKIN_WS/src/
     ln -s $HOME/redtail/ros/packages/px4_controller $CATKIN_WS/src/
     ln -s $HOME/redtail/ros/packages/redtail_debug $CATKIN_WS/src/
-    ln -s $HOME/redtail/ros/packages/stereo_dnn_ros $CATKIN_WS/src/
-    ln -s $HOME/redtail/ros/packages/stereo_dnn_ros_viz $CATKIN_WS/src/
 fi
 
-exit
-
-echo "Installing dependencies..."
-cd $HOME
-sudo apt-get install -y ros-kinetic-angles
+# if ZED camera is used, prepare packages and needed libraries
+# check if ZED SDK is installed
+if [ -d /usr/local/zed ]; then
+    # If ZED is used, add also the following packages:
+    ln -s $HOME/redtail/ros/packages/stereo_dnn_ros $CATKIN_WS/src/
+    ln -s $HOME/redtail/ros/packages/stereo_dnn_ros_viz $CATKIN_WS/src/
+    # build  nvstereo_interference library, sample application and tests
+    cd /usr/src/gtest
+    cmake CMakeLists.txt
+    make
+    cd $HOME/redtail/stereoDNN
+    # Build debug:
+    mkdir build
+    cd ./build
+    cmake -DCMAKE_BUILD_TYPE=Debug ..
+    make
+    # Build release:
+    cd ..
+    mkdir build_rel
+    cd ./build_rel/
+    cmake -DCMAKE_BUILD_TYPE=Release ..
+    make
+    # run test app. See also: https://github.com/NVIDIA-AI-IOT/redtail/tree/master/stereoDNN#building-inference-code
+    # ./bin/nvstereo_tests_debug ./tests/data
+    # if the test ran successfully, then we link the created samples and libs to the catkin workspace
+    ln -s $HOME/redtail/stereoDNN/build $CATKIN_WS/src/stereo_dnn_ros/stereoDNN/
+    ln -s $HOME/redtail/stereoDNN/lib $CATKIN_WS/src/stereo_dnn_ros/stereoDNN/
+    ln -s $HOME/redtail/stereoDNN/sample_app $CATKIN_WS/src/stereo_dnn_ros/stereoDNN/
+fi
 
 cd $CATKIN_WS
 echo "Building caffe_ros px4_controller redtail_debug packages..."
@@ -157,9 +179,5 @@ catkin build
 # Environment setup.
 echo "source $CATKIN_WS/devel/setup.bash" >> $HOME/.bashrc
 source $CATKIN_WS/devel/setup.bash
-
-echo "export ROS_MASTER_URI=http://localhost:11311" >> $HOME/.bashrc
-echo "export ROS_IP=127.0.0.1" >> $HOME/.bashrc
-source $HOME/.bashrc
 
 echo "${green}All done.${reset}"
