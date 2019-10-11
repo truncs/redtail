@@ -140,6 +140,7 @@ if [ ! -L "$CATKIN_WS/src/caffe_ros" ]; then
     ln -s $HOME/redtail/ros/packages/caffe_ros $CATKIN_WS/src/
     ln -s $HOME/redtail/ros/packages/px4_controller $CATKIN_WS/src/
     ln -s $HOME/redtail/ros/packages/redtail_debug $CATKIN_WS/src/
+    ln -s $HOME/redtail/ros/packages/image_pub $CATKIN_WS/src/
 fi
 
 # if ZED camera is used, prepare packages and needed libraries
