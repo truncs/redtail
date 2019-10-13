@@ -48,15 +48,13 @@ public:
         assert((ss >> std::ws).eof());
     }
 
-    CostVolumePlugin(CostVolumePlugin&&) = delete;
-
     bool supportsFormat(DataType type, PluginFormat format) const override
     {
         // See EluPlugin::supportsFormat for the notes.
         // Other combinations are not currently implemented.
         // REVIEW alexeyk: kHALF && kNCHW is only for testing on the host as TRT fails with assert when using kHALF && kNC2HW2.
         bool supported_formats = (type == DataType::kFLOAT && format == PluginFormat::kNCHW)  ||
-                                 //(type == DataType::kHALF  && format == PluginFormat::kNCHW)  ||
+                                 (type == DataType::kHALF  && format == PluginFormat::kNCHW)  ||
                                  (type == DataType::kHALF  && format == PluginFormat::kNC2HW2);
         return (type == data_type_) && supported_formats;
     }
@@ -112,6 +110,28 @@ public:
     void terminate() override
     {
     }
+
+#ifdef TENSORRT_5
+    const char* getPluginType() const override
+    {
+        return name_.c_str();
+    }
+
+    const char* getPluginVersion() const override
+    {
+        return "default";
+    }
+
+    void destroy() override
+    {
+        delete this;
+    }
+
+    virtual IPluginExt* clone() const override
+    {
+        return new CostVolumePlugin(*this);
+    }
+#endif
 
     size_t getWorkspaceSize(int maxBatchSize) const
     {
