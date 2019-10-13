@@ -11,6 +11,9 @@ The project also contains [Stereo DNN](../master/stereoDNN/) models and runtime 
 
 For whitepapers, demos, and a detailed buils and configuration description please refer to the original Nvidia documentation at: https://github.com/NVIDIA-AI-IOT/redtail
 
+For installation, test and flight insteuctions please see the wiki. 
+
+
 News:
 - 3D CAD files for a 1 axis gimbal for the ZED stereo cam added
 - Redtail install script and instructions for Jetpack 4.2.x and Ubuntu 18.04 added
