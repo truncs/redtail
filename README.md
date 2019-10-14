@@ -9,7 +9,10 @@ This project contains deep neural networks, computer vision and control code, ha
 
 The project also contains [Stereo DNN](../master/stereoDNN/) models and runtime which allow to estimate depth from a [ZED stereo camera](https://www.stereolabs.com/zed/) on NVIDIA platforms.
 
-For whitepapers, demos, and a detailed buils and configuration description please refer to the original Nvidia documentation at: https://github.com/NVIDIA-AI-IOT/redtail
+For whitepapers, demos, and a detailed build and configuration description please refer to the original Nvidia documentation at: https://github.com/NVIDIA-AI-IOT/redtail
+
+For installation, test and flight instructions please see the wiki in this git: https://github.com/mtbsteve/redtail/wiki 
+
 
 News:
 - 3D CAD files for a 1 axis gimbal for the ZED stereo cam added
