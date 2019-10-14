@@ -11,7 +11,7 @@ The project also contains [Stereo DNN](../master/stereoDNN/) models and runtime 
 
 For whitepapers, demos, and a detailed buils and configuration description please refer to the original Nvidia documentation at: https://github.com/NVIDIA-AI-IOT/redtail
 
-For installation, test and flight insteuctions please see the wiki in this git: https://github.com/mtbsteve/redtail/wiki 
+For installation, test and flight instructions please see the wiki in this git: https://github.com/mtbsteve/redtail/wiki 
 
 
 News:
