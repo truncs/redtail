@@ -20,6 +20,5 @@ News:
 
 Known Issues:
 - ROS joy node doesnt work on Jetpack 4.2.x, therefore the joystick needs to be connected on a host PC
-- gscam does not produce a video stream 
-- stereoDNN with resnet18 results in a memory overflow and crash.
-- TrailnetDNN and YOLO not migrated and not tested yet
+- gscam does not produce a video stream over udp
+- stereoDNN with resnet18 results in a memory overflow and crash
