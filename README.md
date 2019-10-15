@@ -17,8 +17,10 @@ For installation, test and flight instructions please see the wiki in this git: 
 News:
 - 3D CAD files for a 1 axis gimbal for the ZED stereo cam added
 - Redtail install script and instructions for Jetpack 4.2.x and Ubuntu 18.04 added
+- Wiki added for installation, setup and testing
 
 Known Issues:
 - ROS joy node doesnt work on Jetpack 4.2.x, therefore the joystick needs to be connected on a host PC
 - gscam does not produce a video stream over udp
 - stereoDNN with resnet18 results in a memory overflow and crash
+- Simulation environment has not been touched yet and therefore likely doesn't work yet
