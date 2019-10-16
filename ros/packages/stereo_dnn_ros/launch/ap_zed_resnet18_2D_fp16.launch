@@ -1,6 +1,8 @@
+<?xml version="1.0" ?>
 <launch>
-    <!--
-    Debug file that uses ZED ROS node and displays result in rviz via /stereo_dnn_ros_viz/output
+    <!-- 
+    stereo_dnn_ros .launch file for ZED camera which the zed-ros-wrapper.
+    ZED resolution must be set to VGA in the /home/apsync/catkin_ws/src/zed-ros-wrapper/zed_wrapper/params/common.yaml file 
     -->
     
     <!-- Start ZED ROS node. -->
@@ -16,17 +18,15 @@
         <arg name="node_name"           value="$(arg node_name)" />
         <arg name="camera_model"        value="$(arg camera_model)" />
         <arg name="publish_urdf"        value="$(arg publish_urdf)" />
-    </include>
-   
-    <arg name="pub_rate" default="1" />
+    </include>   
 
-    <node pkg="stereo_dnn_ros_viz" type="stereo_dnn_ros_viz_node" name="stereo_dnn_ros_viz" output="screen">
-        <param name="camera_topic_left"  value="/zed/left/image_rect_color" />
-        <param name="camera_topic_right" value="/zed/right/image_rect_color" />
-        <param name="dnn_topic"          value="/stereo_dnn_ros/network/output" />
-        <param name="viz_topic"          value="/stereo_dnn_ros_viz/output" />
-        <param name="in_queue_size"      value="10" />
+
+    <node pkg="stereo_dnn_ros" type="stereo_dnn_ros_node" name="stereo_dnn_ros" output="screen">
+        <param name="camera_topic_left"  value="/zed/zed_node/left/image_rect_color" />
+        <param name="camera_topic_right" value="/zed/zed_node/right/image_rect_color" />
+        <param name="model_path"         value="/home/apsync/redtail/stereoDNN/models/ResNet-18_2D/TensorRT/trt_weights_fp16.bin" />
+        <param name="data_type"          value="fp16" />
+        <param name="camera_queue_size"  value="10" />
     </node>
 
 </launch>
-
