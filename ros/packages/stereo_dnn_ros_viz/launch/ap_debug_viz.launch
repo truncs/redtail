@@ -12,6 +12,8 @@
         <param name="dnn_topic"          value="/stereo_dnn_ros/network/output" />
         <param name="viz_topic"          value="/stereo_dnn_ros_viz/output" />
         <param name="in_queue_size"      value="10" />
+        <param name="out_queue_size"      value="2" />
+        <param name="max_rate_hz"      value="10" />
     </node>
 
 </launch>
