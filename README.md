@@ -18,6 +18,7 @@ News:
 - 3D CAD files for a 1 axis gimbal for the ZED stereo cam added
 - Redtail install script and instructions for Jetpack 4.2.x and Ubuntu 18.04 added
 - Wiki added for installation, setup and testing
+- Solex-CC workers for ZED camera control and for managing the different ROS nodes added
 
 Known Issues:
 - ROS joy node doesnt work on Jetpack 4.2.x, therefore the joystick needs to be connected on a host PC
