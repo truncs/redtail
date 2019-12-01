@@ -1,0 +1,58 @@
+{
+    "type": "LinearLayout",
+    "layout_width": "match_parent",
+    "layout_height": "wrap_content",
+    "orientation": "vertical",
+    "gravity": "center",
+    "background": "#88000000",
+    "children": [
+        {
+            "type": "TextView",
+            "layout_width": "match_parent",
+            "layout_height": "wrap_content",
+            "padding": 10,
+    	    "background": "red",
+            "gravity": "center",
+            "text": "Redtail Setup"
+        },
+        {
+            "type": "Button",
+            "id": "do_dialog",
+            "layout_width": "match_parent",
+            "layout_height": "wrap_content",
+            "text": "Init ZED & Image Nodes",
+            "textAllCaps": false,
+            "background": "black",
+            "on_click": {
+                "worker_id": "ZEDstart_panel",
+                "msg_id": "show_dialog"
+            }
+        },
+        {
+            "type": "Button",
+            "id": "do_dialog2",
+            "layout_width": "match_parent",
+            "layout_height": "wrap_content",
+            "text": "Launch RTSP video server",
+            "textAllCaps": false,
+            "background": "black",
+            "on_click": {
+                "worker_id": "ZEDstart_panel",
+                "msg_id": "show_dialog2"
+            }
+        },
+        {
+            "type": "Button",
+            "id": "do_dialog3",
+            "layout_width": "match_parent",
+            "layout_height": "wrap_content",
+            "text": "Init MAVROS-Arducopter",
+            "textAllCaps": false,
+            "background": "black",
+            "on_click": {
+                "worker_id": "ZEDstart_panel",
+                "msg_id": "show_dialog3"
+            }
+        }
+    ]
+}
