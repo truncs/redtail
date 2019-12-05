@@ -1,12 +1,11 @@
 #!/bin/bash  
-# set -x
 picture_camera() {
 	if ! ps -ef | grep [i]mage_rect_color 
 	then
            rosrun image_view image_saver image:=/zed/zed_node/left/image_rect_color _save_all_image:=false _filename_format:=/home/apsync/dflogger/dataflash/zed_image/zed_left%04i.jpg __name:=zed_image_saver > /dev/null &
 	   sleep 4
         fi
-	rosservice call /zed_image_saver/save
+	rosservice call /zed_image_saver/save > /dev/null
 	echo "picture taken"
 	exit 1
 	}
@@ -17,7 +16,7 @@ picture_depth_map() {
            rosrun image_view image_saver image:=/stereo_dnn_ros_viz/output _save_all_image:=false _filename_format:=/home/apsync/dflogger/dataflash/zed_image/col_depth%04i.jpg __name:=depth_color_image_saver > /dev/null &
 	   sleep 4
 	fi
-        rosservice call /depth_color_image_saver/save
+        rosservice call /depth_color_image_saver/save > /dev/null
 	echo "color depth pic taken"
 	exit 1
 	}

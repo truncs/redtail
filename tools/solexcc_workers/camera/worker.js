@@ -152,6 +152,7 @@ function takePicture(type) {
     } else {
         picparam = "take_depth_pic";
     };
+    sendUpdatePictureStatus(true);
     const server = path.join(__dirname, `takepicture.sh ${picparam}`);
     d(`server=${server}`);
 
@@ -163,18 +164,24 @@ function takePicture(type) {
 
     child.stdout.on("data", function(data) {
         d(`child.stdout RECEIVED: ${data.toString('utf-8')}`);
-        mChildProcess = null;
+        if(data.toString('utf-8').includes ("taken")) {
+           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, `picture taken`, ATTRS.api.WorkerUI.SpeechType.TEXT);
+           mChildProcess = null;
+           sendUpdatePictureStatus(false);
+        }
     });
 
     child.stderr.on("data", function(data) {
         d(`child.stderr: ${data.toString('utf-8')}`);
-        ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, `ROS ${data.toString('utf-8')}`, ATTRS.api.WorkerUI.SpeechType.ERROR);
-        const server = path.join(__dirname, `takepicture.sh stop`);
-        d(`server=${server}`);
-        spawn("sh", [ server ], { shell: true });
+        if(data.toString('utf-8').includes ("ERROR")) {
+           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, `Error occured ${data.toString('utf-8')}`, ATTRS.api.WorkerUI.SpeechType.ERROR);
+           sendUpdatePictureStatus(false);
+           const server = path.join(__dirname, `takepicture.sh stop`);
+           d(`server=${server}`);
+           spawn("sh", [ server ], { shell: true });
+        }
     });
 
-    ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Picture taken", ATTRS.api.WorkerUI.SpeechType.TEXT);
 
 return {ok: true, message: "picture taken ok"};
 }
@@ -243,9 +250,23 @@ function sendUpdateRecordingStatus(recording) {
             btn_video: {
                 icon: `$(img)/${ATTRS.id}/${imgName}`
             },
-            spin_image_node: { enabled: !recording },
-            btn_evcomp_add: { enabled: !recording },
-            btn_evcomp_sub: { enabled: !recording }
+            spin_image_node: { enabled: !recording }
+        }
+    });
+}
+
+function sendUpdatePictureStatus(recording) {
+    const imgName = (recording) ? "shutter_close2.png" : "shutter.png";
+
+    ATTRS.sendGCSMessage(ATTRS.id, {
+        id: "screen_update",
+        screen_id: "flight",
+        panel_id: "camera_panel",
+        values: {
+            take_picture: {
+                icon: `$(img)/${ATTRS.id}/${imgName}`
+            },
+            spin_image_node: { enabled: !recording }
         }
     });
 }

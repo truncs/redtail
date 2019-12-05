@@ -1,0 +1,23 @@
+{
+    "id": "display_dialog",
+    "screen_id": "start",
+    "title": "Shutdown TX2",
+    "message": "The Jetson TX2 Companion Computer will shutdown. Press OK to continue or Cancel to abort.",
+    "buttons": [
+        {
+            "id": "cancel",
+            "text": "Cancel",
+            "on_click": {
+                "action": "dismiss"
+            }
+        },
+        {
+            "id": "ok",
+            "text": "OK, Shutdown",
+            "on_click": {
+                "worker_id": "ZEDstart_panel",
+                "msg_id": "shutdown_ok"
+            }
+        }
+    ]
+}

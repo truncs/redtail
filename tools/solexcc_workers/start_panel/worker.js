@@ -100,6 +100,17 @@ function onGCSMessage(msg) {
             break;
         }
 
+        case "display_dialog": {
+            sendShowDialogMessage4();
+            break;
+        }
+
+        case "shutdown_ok": {
+            d(`message is ${JSON.stringify(msg)}`);
+            shutdowntx2();    
+        break;
+        }
+
         default: {
             result.ok = false;
             result.message = `No message with id ${msg.id}`;
@@ -136,11 +147,6 @@ const body = loadLayoutFor(ATTRS.api.WorkerUI.Const.PANEL_WORKER_BUTTONS);
             } else {
                 return null;
             }
-
-            //return (body)? {
-            //    screen_id: screen, 
-            //    worker_buttons: body
-            //}: null;
         }
 
         default: {
@@ -230,8 +236,10 @@ function startZEDrosnode() {
 
     child.stdout.on("data", function(data) {
         d(`child.stdout RECEIVED: ${data.toString('utf-8')}`);
-        ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "ZED node initiated", ATTRS.api.WorkerUI.SpeechType.ERROR);
-        sendZEDButtonUpdate(); 
+        if(data.toString('utf-8').includes ("ZED ros launched")) {
+           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "ZED node initiated", ATTRS.api.WorkerUI.SpeechType.TEXT);
+           sendZEDButtonUpdate();
+        } 
     });
 
     child.stderr.on("data", function(data) {
@@ -310,7 +318,10 @@ function startros2rtspnode(msg) {
 
     child.stdout.on("data", function(data) {
         d(`child.stdout: ${data.toString('utf-8')}`);
-        sendZEDButtonUpdate2();
+        if(data.toString('utf-8').includes ("ROS2RTSP launched")) {
+           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Video server initiated", ATTRS.api.WorkerUI.SpeechType.TEXT);
+           sendZEDButtonUpdate2();
+        }
     });
 
     child.stderr.on("data", function(data) {
@@ -395,8 +406,46 @@ function sendShowDialogMessage2() {
     }
 }
 
+function shutdowntx2() {
+    d(`message received is shutdown`);
+
+    const server = path.join(__dirname, "shutdowntx2.sh");
+    d(`server=${server}`);
+
+    const child = spawn("sh", [ server ], { shell: true });
+    child.stdin.setEncoding("utf-8");
+    d(`child=${child}`);
+
+    child.on("error", function (error) {
+        d(`Error starting child process: ${error}`);
+    });
+
+    child.stdout.on("data", function(data) {
+        d(`child.stdout RECEIVED: ${data.toString('utf-8')}`);
+    });
+
+    child.stderr.on("data", function(data) {
+        d(`child.stderr: ${data.toString('utf-8')}`);
+    });
+
+    child.on("close", function(code) {
+        d(`Child closed with ${code}`);
+    });
+    return {ok: true, message: "started"};
+}
+
+
+
 function sendShowDialogMessage3() {
     const body = loadLayoutFor("display_dialog3");
+
+    if(body) {
+        ATTRS.sendGCSMessage(ATTRS.id, { id: "display_dialog", content: body });
+    }
+}
+
+function sendShowDialogMessage4() {
+    const body = loadLayoutFor("display_dialog4");
 
     if(body) {
         ATTRS.sendGCSMessage(ATTRS.id, { id: "display_dialog", content: body });
