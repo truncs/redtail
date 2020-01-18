@@ -100,8 +100,10 @@
         "id": "spin_image_mode", 
         "name": "image_mode", 
         "items": [
-          {"id": "videocolor", "text": "Real"},
-          {"id": "depthcolor", "text": "ColorM"}
+          {"id": "videocolor", "text": "Video"},
+          {"id": "depthgray", "text": "Depth"},
+          {"id": "yolocolor", "text": "YOLO"},
+          {"id": "depthcolor", "text": "All"}
         ],
         "on_item_selected": {
           "worker_id": "camera",

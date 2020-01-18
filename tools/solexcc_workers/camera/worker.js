@@ -57,13 +57,19 @@ function onGCSMessage(msg) {
 
     switch(msg.id) {
         case "take_picture": {
-            d("now call camera take_picture");
+            d("now call camera to take a picture");
             var strg=JSON.stringify(msg);
-            if(strg.includes("video")) {
+            if(strg.includes("videocolor")) {
                    //d("now call camera take_picture video");
                    takePicture("real");
+
+            } else if(strg.includes("depthgray")) {
+                   takePicture("depth");
+
+            } else if(strg.includes("yolocolor")) {
+                   takePicture("yolo");
             } else {
-                   //d("now call camera take_picture color");
+                   //d("now call camera take_picture all images");
                    takePicture("color");
             }
             break;
@@ -77,7 +83,13 @@ function onGCSMessage(msg) {
                    ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Video recording started", ATTRS.api.WorkerUI.SpeechType.TEXT);
             } else if (strg.includes("depthcolor") && mRecordingVideo == false) {
                    toggleVideo("color");
-                   ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Depth map recording started", ATTRS.api.WorkerUI.SpeechType.TEXT);
+                   ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Recording of all images started", ATTRS.api.WorkerUI.SpeechType.TEXT);
+            } else if (strg.includes("yolocolor") && mRecordingVideo == false) {
+                   toggleVideo("yolo");
+                   ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "YOLO object recognition recording started", ATTRS.api.WorkerUI.SpeechType.TEXT);
+            } else if (strg.includes("depthgray") && mRecordingVideo == false) {
+                   toggleVideo("depth");
+                   ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Recording Depth Map started", ATTRS.api.WorkerUI.SpeechType.TEXT);
             } else if (mRecordingVideo == true) {
                    toggleVideo("stop");
                    ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Recording stopped", ATTRS.api.WorkerUI.SpeechType.TEXT);
@@ -139,20 +151,17 @@ function sendCameraError(str) {
 
 // routine to take a picture
 var mChildProcess = null;
-var picparam = "";
-function takePicture(type) {
+
+function takePicture(picparam) {
     if(mChildProcess) {
         d(`Child process is already running`);
         return {ok: false, message: "Child process is already running"};
         ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Process already running!", ATTRS.api.WorkerUI.SpeechType.ERROR);
     };
-    d(`parameter: ${type}`);
-    if(type == "real") {
-        picparam = "take_picture";
-    } else {
-        picparam = "take_depth_pic";
-    };
+    d(`parameter: ${picparam}`);
+   
     sendUpdatePictureStatus(true);
+    d(`parameter vor übergabe: ${picparam}`);
     const server = path.join(__dirname, `takepicture.sh ${picparam}`);
     d(`server=${server}`);
 
@@ -165,46 +174,43 @@ function takePicture(type) {
     child.stdout.on("data", function(data) {
         d(`child.stdout RECEIVED: ${data.toString('utf-8')}`);
         if(data.toString('utf-8').includes ("taken")) {
-           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, `picture taken`, ATTRS.api.WorkerUI.SpeechType.TEXT);
+           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, `picture ${data.toString('utf-8')}`, ATTRS.api.WorkerUI.SpeechType.TEXT);
            mChildProcess = null;
            sendUpdatePictureStatus(false);
+           return {ok: true, message: "picture taken ok"};
         }
     });
 
     child.stderr.on("data", function(data) {
         d(`child.stderr: ${data.toString('utf-8')}`);
-        if(data.toString('utf-8').includes ("ERROR")) {
-           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, `Error occured ${data.toString('utf-8')}`, ATTRS.api.WorkerUI.SpeechType.ERROR);
+        if(data.toString('utf-8').includes ("err")) {
+           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, `ROS Error: Failed to contact RTSP video node`, ATTRS.api.WorkerUI.SpeechType.ERROR);
            sendUpdatePictureStatus(false);
            const server = path.join(__dirname, `takepicture.sh stop`);
            d(`server=${server}`);
            spawn("sh", [ server ], { shell: true });
+           return {ok: false, message: "no access to RTSP server"};
         }
     });
 
 
-return {ok: true, message: "picture taken ok"};
+//return {ok: true, message: "picture taken ok"};
 }
 
 var mChildProcess2 = null;
 var mRecordingVideo = false;
-var vidparam = "";
-function toggleVideo(type) {
+
+function toggleVideo(vidparam) {
     if(mChildProcess2) {
         d(`Child process is already running`);
         return {ok: false, message: "Child process is already running"};
         ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Process already running!", ATTRS.api.WorkerUI.SpeechType.ERROR);
     };
-    d(`parameter received: ${type}`);
-    if(type == "real") {
-        vidparam = "start_recording";
-        mRecordingVideo = true;
-    } else if (type == "color") {
-        vidparam = "start_rec_depth";
-        mRecordingVideo = true;
-    } else {
-        vidparam = "stop";
+    d(`parameter received: ${vidparam}`);
+    if(vidparam == "stop") {
         mRecordingVideo = false;
+    } else {
+        mRecordingVideo = true;
     };
     const server = path.join(__dirname, `startstop_video.sh ${vidparam}`);
     d(`server=${server}`);
@@ -220,13 +226,17 @@ function toggleVideo(type) {
     });
 
     child.stderr.on("data", function(data) {
-        d(`child.stderr: ${data.toString('utf-8')}`);
-        ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "ROS Error: Failed to contact master", ATTRS.api.WorkerUI.SpeechType.ERROR);
-        const server = path.join(__dirname, `startstop_video.sh stop`);
-        d(`server=${server}`);
-        spawn("sh", [ server ], { shell: true });
-        mRecordingVideo = false;
-        sendUpdateRecordingStatus(mRecordingVideo);
+        d(`child.stderror received: ${data.toString('utf-8')}`);
+        if(data.toString('utf-8').includes ("ERROR")) {
+          
+          ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "ROS Error: Failed to contact RTSP video node", ATTRS.api.WorkerUI.SpeechType.ERROR);
+          const server = path.join(__dirname, `startstop_video.sh stop`);
+          d(`server=${server}`);
+          spawn("sh", [ server ], { shell: true });
+          mRecordingVideo = false;
+          sendUpdateRecordingStatus(mRecordingVideo);
+          return {ok: false, message: "no access to RTSP server"};
+        }
     });
 
     child.on("close", function(code) {
@@ -234,7 +244,7 @@ function toggleVideo(type) {
         mChildProcess = null;
     });
     mChildProcess = child;
-    return {ok: true, message: "picture taken"};
+    return {ok: true, message: "video taken"};
 }
 
 
