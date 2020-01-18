@@ -1,4 +1,4 @@
-# ArduCopter support for NVIDIA Redtail project
+# Extended NVIDIA Redtail project for Arducopter
 
 ## Note: This is work in progress!
 Autonomous visual navigation components for drones and ground vehicles using deep learning.
