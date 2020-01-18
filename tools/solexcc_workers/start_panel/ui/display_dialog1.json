@@ -1,7 +1,7 @@
 {
-    "id": "my_dialog2",
+    "id": "my_dialog1",
     "screen_id": "start",
-    "title": "Manage Trailnet DNN",
+    "title": "Manage StereoDNN Nodes",
     "layout": {
         "type": "LinearLayout",
         "layout_width": "match_parent",
@@ -17,7 +17,7 @@
                 "padding": 30,
       	        "background": "red",
                 "gravity": "center",
-                "text": "Startup of the Trailnet node and RTSP video server node - click Start to launch or Stop to shutdown the nodes"
+                "text": "Startup of the ROS ZED, StereoDNN (Resnet18-2D) and RTSP Video Streaming Server nodes - click Start to launch or Stop to shutdown the  nodes"
             }
         ]
     },
@@ -31,18 +31,18 @@
         },
         {
             "id": "ok",
-            "text": "Start Trailnet",
+            "text": "Start ZED",
             "on_click": {
                 "worker_id": "ZEDstart_panel",
-                "msg_id": "ros_trailnet_start"
+                "msg_id": "ros_stereodnn_start"
             }
         },
         {
             "id": "stop",
-            "text": "Shutdown Trailnet and Video Node",
+            "text": "Shutdown ZED+Video ROS Nodes",
             "on_click": {
                 "worker_id": "ZEDstart_panel",
-                "msg_id": "ros_trailnet_stop"
+                "msg_id": "ros_stereodnn_stop"
             }
         }
     ]

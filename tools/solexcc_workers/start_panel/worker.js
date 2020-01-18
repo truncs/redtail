@@ -56,37 +56,44 @@ function onGCSMessage(msg) {
     d(`message received is ${JSON.stringify(msg)}`);
 
     switch(msg.id) {
-        case "zed_ros_start": {
-            startZEDrosnode();
+        case "ros_stereodnn_start": {
+            startstereodnnnode();
             break;
         }
-        case "zed_ros_stop": {
-            stopZEDrosnode();
+        case "ros_stereodnn_stop": {
+            stopstereodnnnode();
             break;
         }
-        case "ros_rtsp_start": {
-            startros2rtspnode();
+        case "ros_trailnet_start": {
+            starttrailnetnode();
             break;
         }
-        case "ros_rtsp_stop": {
-            stopros2rtspnode();
+        case "ros_trailnet_stop": {
+            stoptrailnetnode();
+            break;
+        }
+        case "ros_yolo_start": {
+            startyolonode();
+            break;
+        }
+        case "ros_yolo_stop": {
+            stopyolonode();
             break;
         }
 
         case "ros_mavros_start": {
             startmavrosnode();
-            sendZEDButtonUpdate3();
             break;
         }
 
         case "ros_mavros_stop": {
             stopmavrosnode();
-            sendZEDButtonUpdate3();
             break;
         }
 
-        case "show_dialog": {
-            sendShowDialogMessage();
+
+        case "show_dialog1": {
+            sendShowDialogMessage1();
             break;
         }
 
@@ -100,8 +107,12 @@ function onGCSMessage(msg) {
             break;
         }
 
-        case "display_dialog": {
+        case "show_dialog4": {
             sendShowDialogMessage4();
+            break;
+        }
+        case "show_dialog5": {
+            sendShowDialogMessage5();
             break;
         }
 
@@ -121,24 +132,27 @@ function onGCSMessage(msg) {
     return result;
 }
 
-var mZEDrosstart = false;
-var mros2rtspstart = false;
-var mmavrosstart = false;
+var stereodnnstart = false;
+var trailnetstart = false;
+var yolostart = false;
+var mavrosstart = false;
 
 // Return a UI for the specified screen.
 function onScreenEnter(screen) {
     switch(screen) {
         case ATTRS.api.WorkerUI.Const.SCREEN_START: {
-            const buttonColor1 = (mZEDrosstart) ? "#ff39aa00" : "black";
-            const buttonColor2 = (mros2rtspstart) ? "#ff39aa00" : "black";            
-            const buttonColor3 = (mmavrosstart) ? "#ff39aa00" : "black";
-
-const body = loadLayoutFor(ATTRS.api.WorkerUI.Const.PANEL_WORKER_BUTTONS);
+            const buttonColor1 = (stereodnnstart) ? "#ff39aa00" : "black";            
+            const buttonColor2 = (trailnetstart) ? "#ff39aa00" : "black";
+            const buttonColor3 = (yolostart) ? "#ff39aa00" : "black";            
+            const buttonColor4 = (mavrosstart) ? "#ff39aa00" : "black";
+            const body = loadLayoutFor(ATTRS.api.WorkerUI.Const.PANEL_WORKER_BUTTONS);
+            d(`Screen entered start`);
             if(body) {
                 //body.children[1].text = buttonText;
                 body.children[1].background = buttonColor1;
                 body.children[2].background = buttonColor2;
                 body.children[3].background = buttonColor3;
+                body.children[4].background = buttonColor4;
 
                 return {
                     screen_id: screen,
@@ -159,16 +173,15 @@ function onScreenExit(screen) {
 
 }
 
-function sendZEDButtonUpdate() {
-    const buttonColor = (mZEDrosstart)? "#ff39aa00": "black";
+function sendZEDButtonUpdate1() {
+    const buttonColor = (stereodnnstart)? "#ff39aa00": "black";
 
     ATTRS.sendGCSMessage(ATTRS.id, {
         id: "screen_update",
         screen_id: "start",
         panel_id: "worker_buttons",
         values: {
-            do_dialog: {
-                //text: buttonText,
+            do_dialog1: {
                 background: buttonColor
             }
         }
@@ -176,7 +189,7 @@ function sendZEDButtonUpdate() {
 }
 
 function sendZEDButtonUpdate2() {
-    const buttonColor = (mros2rtspstart)? "#ff39aa00": "black";
+    const buttonColor = (trailnetstart)? "#ff39aa00": "black";
 
     ATTRS.sendGCSMessage(ATTRS.id, {
         id: "screen_update",
@@ -191,7 +204,7 @@ function sendZEDButtonUpdate2() {
 }
 
 function sendZEDButtonUpdate3() {
-    const buttonColor = (mmavrosstart)? "#ff39aa00": "black";
+    const buttonColor = (yolostart)? "#ff39aa00": "black";
 
     ATTRS.sendGCSMessage(ATTRS.id, {
         id: "screen_update",
@@ -205,66 +218,39 @@ function sendZEDButtonUpdate3() {
     });
 }
 
+function sendZEDButtonUpdate4() {
+    const buttonColor = (mavrosstart)? "#ff39aa00": "black";
+
+    ATTRS.sendGCSMessage(ATTRS.id, {
+        id: "screen_update",
+        screen_id: "start",
+        panel_id: "worker_buttons",
+        values: {
+            do_dialog5: {
+                background: buttonColor
+            }
+        }
+    });
+}
+
 // Serve an image if it exists.
 function onImageDownload(name) {
     return ATTRS.api.WorkerUI.serveImage(__dirname, name);
 }
 
-var mChildProcess = null;
+// Start and stop od the StereoDNN node. This includes ZED ROS, resnet18-2D and the color coded depth images
+var mChildProcess1 = null;
 var mChildProcess2 = null;
 
-function startZEDrosnode() {
-    mZEDrosstart = true;
-    d(`message received is start ZED node!`);
-
-    if(mChildProcess) {
+function startstereodnnnode(msg) {
+    stereodnnstart = true;
+    d(`message received is start stereodnn node!`);
+    if(mChildProcess1) {
         d(`Child process is already running`);
         return {ok: false, message: "Child process is already running"};
     }
 
-    const server = path.join(__dirname, "startstopZEDimagenodes.sh start");
-    d(`server=${server}`);
-
-    const child = spawn("sh", [ server ], { shell: true });
-    child.stdin.setEncoding("utf-8");
-    d(`child=${child}`);
-
-    child.on("error", function (error) {
-        d(`Error starting child process: ${error}`);
-        ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, `Error starting child process: ${error}`, ATTRS.api.WorkerUI.SpeechType.ERROR);
-    });
-
-    child.stdout.on("data", function(data) {
-        d(`child.stdout RECEIVED: ${data.toString('utf-8')}`);
-        if(data.toString('utf-8').includes ("ZED ros launched")) {
-           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "ZED node initiated", ATTRS.api.WorkerUI.SpeechType.TEXT);
-           sendZEDButtonUpdate();
-        } 
-    });
-
-    child.stderr.on("data", function(data) {
-        d(`child.stderr: ${data.toString('utf-8')}`);
-    });
-
-    child.on("close", function(code) {
-        d(`Child closed with ${code}`);
-        mChildProcess = null;
-    });
-
-    mChildProcess = child;
-
-    return {ok: true, message: "started"};
-}
-
-function stopZEDrosnode() {
-    mZEDrosstart = false;
-    d(`message received is stop ZED node!`);
-    if(mChildProcess2) {
-        d(`Child process is already running`);
-        return {ok: false, message: "Child process is already running"};
-    }
-
-    const server = path.join(__dirname, "startstopZEDimagenodes.sh stop");
+    const server = path.join(__dirname, "startstopStereoDNNnodes.sh start");
     d(`server=${server}`);
 
     const child = spawn("sh", [ server ], { shell: true });
@@ -277,7 +263,48 @@ function stopZEDrosnode() {
 
     child.stdout.on("data", function(data) {
         d(`child.stdout: ${data.toString('utf-8')}`);
-        sendZEDButtonUpdate();
+        if(data.toString('utf-8').includes ("StereoDNN launched")) {
+           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Stereo DNN initiated", ATTRS.api.WorkerUI.SpeechType.TEXT);
+           sendZEDButtonUpdate1();
+        }
+    });
+
+    child.stderr.on("data", function(data) {
+        d(`child.stderr: ${data.toString('utf-8')}`);
+    });
+
+    child.on("close", function(code) {
+        d(`Child closed with ${code}`);
+        mChildProcess1 = null;
+    });
+
+    mChildProcess1 = child;
+
+    return {ok: true, message: "started"};
+}
+
+function stopstereodnnnode(msg) {
+    stereodnnstart = false;
+    d(`message received is stop StereoDNN node!`);
+    if(mChildProcess2) {
+        d(`Child process is already running`);
+        return {ok: false, message: "Child process is already running"};
+    }
+
+    const server = path.join(__dirname, "startstopStereoDNNnodes.sh stop");
+    d(`server=${server}`);
+
+    const child = spawn("sh", [ server ], { shell: true });
+    child.stdin.setEncoding("utf-8");
+    d(`child=${child}`);
+
+    child.on("error", function (error) {
+        d(`Error starting child process: ${error}`);
+    });
+
+    child.stdout.on("data", function(data) {
+        d(`child.stdout: ${data.toString('utf-8')}`);
+        sendZEDButtonUpdate1();
     });
 
     child.stderr.on("data", function(data) {
@@ -294,18 +321,19 @@ function stopZEDrosnode() {
     return {ok: true, message: "started"};
 }
 
+// Start and stop of the trailnet node, includes ZED ROS and video
 var mChildProcess3 = null;
 var mChildProcess4 = null;
 
-function startros2rtspnode(msg) {
-    mros2rtspstart = true;
-    d(`message received is start ros2rtsp node!`);
+function starttrailnetnode(msg) {
+    trailnetstart = true;
+    d(`message received is start Trailnet node!`);
     if(mChildProcess3) {
         d(`Child process is already running`);
         return {ok: false, message: "Child process is already running"};
     }
 
-    const server = path.join(__dirname, "startstopROS2RTSPimagenode.sh start");
+    const server = path.join(__dirname, "startstoptrailnetnodes.sh start");
     d(`server=${server}`);
 
     const child = spawn("sh", [ server ], { shell: true });
@@ -318,8 +346,8 @@ function startros2rtspnode(msg) {
 
     child.stdout.on("data", function(data) {
         d(`child.stdout: ${data.toString('utf-8')}`);
-        if(data.toString('utf-8').includes ("ROS2RTSP launched")) {
-           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Video server initiated", ATTRS.api.WorkerUI.SpeechType.TEXT);
+        if(data.toString('utf-8').includes ("TrailnetDNN launched")) {
+           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Trailnet DNN initiated", ATTRS.api.WorkerUI.SpeechType.TEXT);
            sendZEDButtonUpdate2();
         }
     });
@@ -338,15 +366,15 @@ function startros2rtspnode(msg) {
     return {ok: true, message: "started"};
 }
 
-function stopros2rtspnode(msg) {
-    mros2rtspstart = false;
-    d(`message received is stop RTSP node!`);
+function stoptrailnetnode(msg) {
+    trailnetstart = false;
+    d(`message received is stop Trailnet node!`);
     if(mChildProcess4) {
         d(`Child process is already running`);
         return {ok: false, message: "Child process is already running"};
     }
 
-    const server = path.join(__dirname, "startstopROS2RTSPimagenode.sh stop");
+    const server = path.join(__dirname, "startstoptrailnetnodes.sh stop");
     d(`server=${server}`);
 
     const child = spawn("sh", [ server ], { shell: true });
@@ -376,36 +404,177 @@ function stopros2rtspnode(msg) {
     return {ok: true, message: "started"};
 }
 
+// Start and stop of the YOLO node, requires previous launch of StereoDNN or trailnet nodes
 var mChildProcess5 = null;
 var mChildProcess6 = null;
 
+function startyolonode(msg) {
+    yolostart = true;
+    d(`message received is start YOLO node!`);
+    if(mChildProcess5) {
+        d(`Child process is already running`);
+        return {ok: false, message: "Child process is already running"};
+    }
+
+    const server = path.join(__dirname, "startstopdarknetyolonodes.sh start");
+    d(`server=${server}`);
+
+    const child = spawn("sh", [ server ], { shell: true });
+    child.stdin.setEncoding("utf-8");
+    d(`child=${child}`);
+
+    child.on("error", function (error) {
+        d(`Error starting child process: ${error}`);
+    });
+
+    child.stdout.on("data", function(data) {
+        d(`child.stdout: ${data.toString('utf-8')}`);
+        if(data.toString('utf-8').includes ("YOLO node launched")) {
+           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "YOLO DNN initiated", ATTRS.api.WorkerUI.SpeechType.TEXT);
+           sendZEDButtonUpdate3();
+        }
+    });
+
+    child.stderr.on("data", function(data) {
+        d(`child.stderr: ${data.toString('utf-8')}`);
+    });
+
+    child.on("close", function(code) {
+        d(`Child closed with ${code}`);
+        mChildProcess5 = null;
+    });
+
+    mChildProcess5 = child;
+
+    return {ok: true, message: "started"};
+}
+
+function stopyolonode(msg) {
+    yolostart = false;
+    d(`message received is stop YOLO node!`);
+    if(mChildProcess6) {
+        d(`Child process is already running`);
+        return {ok: false, message: "Child process is already running"};
+    }
+
+    const server = path.join(__dirname, "startstopdarknetyolonodes.sh stop");
+    d(`server=${server}`);
+
+    const child = spawn("sh", [ server ], { shell: true });
+    child.stdin.setEncoding("utf-8");
+    d(`child=${child}`);
+
+    child.on("error", function (error) {
+        d(`Error starting child process: ${error}`);
+    });
+
+    child.stdout.on("data", function(data) {
+        d(`child.stdout: ${data.toString('utf-8')}`);
+        sendZEDButtonUpdate3();
+    });
+
+    child.stderr.on("data", function(data) {
+        d(`child.stderr: ${data.toString('utf-8')}`);
+    });
+
+    child.on("close", function(code) {
+        d(`Child closed with ${code}`);
+        mChildProcess6 = null;
+    });
+
+    mChildProcess6 = child;
+
+    return {ok: true, message: "started"};
+}
+
+// start of MAVROS and the PX4 controller nodes
+var mChildProcess7 = null;
+var mChildProcess8 = null;
+
 function startmavrosnode(msg) {
-    mmavrosstart = true;
+    mavrosstart = true;
     d(`message received is start MAVROS node!`);
+    if(mChildProcess7) {
+        d(`Child process is already running`);
+        return {ok: false, message: "Child process is already running"};
+    }
+
+    const server = path.join(__dirname, "startstopMavros_PX4nodes.sh start");
+    d(`server=${server}`);
+
+    const child = spawn("sh", [ server ], { shell: true });
+    child.stdin.setEncoding("utf-8");
+    d(`child=${child}`);
+
+    child.on("error", function (error) {
+        d(`Error starting child process: ${error}`);
+    });
+
+    child.stdout.on("data", function(data) {
+        d(`child.stdout: ${data.toString('utf-8')}`);
+        if(data.toString('utf-8').includes ("MAVROS node launched")) {
+           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "MAVROS and PX4 initiated", ATTRS.api.WorkerUI.SpeechType.TEXT);
+           sendZEDButtonUpdate4();
+        }
+    });
+
+    child.stderr.on("data", function(data) {
+        d(`child.stderr: ${data.toString('utf-8')}`);
+        if(data.toString('utf-8').includes ("Trailnet is not running")) {
+           ATTRS.api.WorkerUI.sendSpeechMessage(ATTRS, "Trailnet is not running must be started first", ATTRS.api.WorkerUI.SpeechType.TEXT);
+        }
+    });
+
+    child.on("close", function(code) {
+        d(`Child closed with ${code}`);
+        mChildProcess7 = null;
+    });
+
+    mChildProcess7 = child;
+
+    return {ok: true, message: "started"};
 }
 
 function stopmavrosnode(msg) {
-    mmavrosstart = false;
+    mavrosstart = false;
     d(`message received is stop MAVROS node!`);
-}
-
-
-function sendShowDialogMessage() {
-    const body = loadLayoutFor("display_dialog");
-
-    if(body) {
-        ATTRS.sendGCSMessage(ATTRS.id, { id: "display_dialog", content: body });
+    if(mChildProcess8) {
+        d(`Child process is already running`);
+        return {ok: false, message: "Child process is already running"};
     }
+
+    const server = path.join(__dirname, "startstopMavros_PX4nodes.sh stop");
+    d(`server=${server}`);
+
+    const child = spawn("sh", [ server ], { shell: true });
+    child.stdin.setEncoding("utf-8");
+    d(`child=${child}`);
+
+    child.on("error", function (error) {
+        d(`Error starting child process: ${error}`);
+    });
+
+    child.stdout.on("data", function(data) {
+        d(`child.stdout: ${data.toString('utf-8')}`);
+        sendZEDButtonUpdate4();
+    });
+
+    child.stderr.on("data", function(data) {
+        d(`child.stderr: ${data.toString('utf-8')}`);
+    });
+
+    child.on("close", function(code) {
+        d(`Child closed with ${code}`);
+        mChildProcess8 = null;
+    });
+
+    mChildProcess8 = child;
+
+    return {ok: true, message: "started"};
 }
 
-function sendShowDialogMessage2() {
-    const body = loadLayoutFor("display_dialog2");
 
-    if(body) {
-        ATTRS.sendGCSMessage(ATTRS.id, { id: "display_dialog", content: body });
-    }
-}
-
+// shutdown of the TX2
 function shutdowntx2() {
     d(`message received is shutdown`);
 
@@ -434,7 +603,22 @@ function shutdowntx2() {
     return {ok: true, message: "started"};
 }
 
+// functions to display the pop up menus 
+function sendShowDialogMessage1() {
+    const body = loadLayoutFor("display_dialog1");
 
+    if(body) {
+        ATTRS.sendGCSMessage(ATTRS.id, { id: "display_dialog", content: body });
+    }
+}
+
+function sendShowDialogMessage2() {
+    const body = loadLayoutFor("display_dialog2");
+
+    if(body) {
+        ATTRS.sendGCSMessage(ATTRS.id, { id: "display_dialog", content: body });
+    }
+}
 
 function sendShowDialogMessage3() {
     const body = loadLayoutFor("display_dialog3");
@@ -452,6 +636,15 @@ function sendShowDialogMessage4() {
     }
 }
 
+function sendShowDialogMessage5() {
+    const body = loadLayoutFor("display_dialog5");
+
+    if(body) {
+        ATTRS.sendGCSMessage(ATTRS.id, { id: "display_dialog", content: body });
+    }
+}
+
+
 function loadLayoutFor(panel) {
     return ATTRS.api.WorkerUI.loadLayout(__dirname, panel);
 }
@@ -465,4 +658,5 @@ exports.onGCSMessage = onGCSMessage;
 exports.onScreenEnter = onScreenEnter;
 exports.onScreenExit = onScreenExit;
 exports.onImageDownload = onImageDownload;
+
 

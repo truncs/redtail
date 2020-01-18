@@ -1,7 +1,7 @@
 {
     "id": "my_dialog3",
     "screen_id": "start",
-    "title": "Arducopter MAVROS",
+    "title": "Launch YOLO",
     "layout": {
         "type": "LinearLayout",
         "layout_width": "match_parent",
@@ -17,7 +17,7 @@
                 "padding": 30,
       	        "background": "red",
                 "gravity": "center",
-                "text": "Startup of the MAVROS node and the communication of calculated direction information to Arducopter - click Start to launch or Stop to shutdown the ROS node"
+                "text": "Startup of the Darknet YOLO DNN node - Please note that either StereoDNN or Trailnet must be launched first - click Start to launch or Stop to shutdown the ROS node"
             }
         ]
     },
@@ -31,18 +31,18 @@
         },
         {
             "id": "ok",
-            "text": "Start MAVROS",
+            "text": "Start YOLO",
             "on_click": {
                 "worker_id": "ZEDstart_panel",
-                "msg_id": "ros_mavros_start"
+                "msg_id": "ros_yolo_start"
             }
         },
         {
             "id": "stop",
-            "text": "Shutdown MAVROS Node",
+            "text": "Shutdown YOLO Node",
             "on_click": {
                 "worker_id": "ZEDstart_panel",
-                "msg_id": "ros_mavros_stop"
+                "msg_id": "ros_yolo_stop"
             }
         }
     ]

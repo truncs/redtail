@@ -1,7 +1,7 @@
 {
-    "id": "my_dialog",
+    "id": "my_dialog5",
     "screen_id": "start",
-    "title": "Manage ZED nodes",
+    "title": "Arducopter MAVROS",
     "layout": {
         "type": "LinearLayout",
         "layout_width": "match_parent",
@@ -17,7 +17,7 @@
                 "padding": 30,
       	        "background": "red",
                 "gravity": "center",
-                "text": "Startup of the ROS ZED, resnet18, and depth visualization nodes - click Start to launch or Stop to shutdown the ROS nodes"
+                "text": "Startup of the MAVROS node and the communication to Arducopter - click Start to launch or Stop to shutdown the MAVROS node"
             }
         ]
     },
@@ -31,18 +31,18 @@
         },
         {
             "id": "ok",
-            "text": "Start ZED",
+            "text": "Start MAVROS",
             "on_click": {
                 "worker_id": "ZEDstart_panel",
-                "msg_id": "zed_ros_start"
+                "msg_id": "ros_mavros_start"
             }
         },
         {
             "id": "stop",
-            "text": "Shutdown ZED ROS Nodes",
+            "text": "Shutdown MAVROS Node",
             "on_click": {
                 "worker_id": "ZEDstart_panel",
-                "msg_id": "zed_ros_stop"
+                "msg_id": "ros_mavros_stop"
             }
         }
     ]

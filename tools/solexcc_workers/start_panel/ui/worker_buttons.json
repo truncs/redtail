@@ -17,15 +17,15 @@
         },
         {
             "type": "Button",
-            "id": "do_dialog",
+            "id": "do_dialog1",
             "layout_width": "match_parent",
             "layout_height": "wrap_content",
-            "text": "Init ZED & Image Nodes",
+            "text": "Stereo DNN",
             "textAllCaps": false,
             "background": "black",
             "on_click": {
                 "worker_id": "ZEDstart_panel",
-                "msg_id": "show_dialog"
+                "msg_id": "show_dialog1"
             }
         },
         {
@@ -33,7 +33,7 @@
             "id": "do_dialog2",
             "layout_width": "match_parent",
             "layout_height": "wrap_content",
-            "text": "Launch RTSP video server",
+            "text": "Trailnet DNN",
             "textAllCaps": false,
             "background": "black",
             "on_click": {
@@ -46,12 +46,25 @@
             "id": "do_dialog3",
             "layout_width": "match_parent",
             "layout_height": "wrap_content",
-            "text": "Init MAVROS-Arducopter",
+            "text": "YOLO DNN",
             "textAllCaps": false,
             "background": "black",
             "on_click": {
                 "worker_id": "ZEDstart_panel",
                 "msg_id": "show_dialog3"
+            }
+         },
+         {
+            "type": "Button",
+            "id": "do_dialog5",
+            "layout_width": "match_parent",
+            "layout_height": "wrap_content",
+            "text": "MAVROS+PX4 Node",
+            "textAllCaps": false,
+            "background": "black",
+            "on_click": {
+                "worker_id": "ZEDstart_panel",
+                "msg_id": "show_dialog5"
             }
          },
          {
@@ -64,7 +77,7 @@
             "background": "red",
             "on_click": {
                 "worker_id": "ZEDstart_panel",
-                "msg_id": "display_dialog"
+                "msg_id": "show_dialog4"
             }
         }
     ]
