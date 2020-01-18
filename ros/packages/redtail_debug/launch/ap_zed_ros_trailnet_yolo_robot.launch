@@ -38,7 +38,7 @@
         <param name="data_type"     value="$(arg data_type)" />
     </node>
 
-    <!-- Start the YOLO caffe_ros node -->
+    <!-- Start the YOLO caffe_ros node 
     <node pkg="caffe_ros" type="caffe_ros_node" name="object_dnn" output="screen" >
         <param name="camera_topic"  value="/zed/zed_node/left/image_rect_color" />
         <param name="prototxt_path" value="$(arg object_prototxt_path)" />
@@ -52,7 +52,7 @@
         <param name="data_type"     value="$(arg object_data_type)" />
         <param name="max_rate_hz"   value="$(arg object_rate_hz)" />
     </node>
-
+    -->
     <node pkg="redtail_debug" type="redtail_debug_node" name="redtail_debug" output="screen">
     </node>
 

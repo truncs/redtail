@@ -34,6 +34,7 @@ cv::Mat preprocessImage(sensor_msgs::Image::ConstPtr img_msg, int dst_img_w, int
         cv::cvtColor(img, img, CV_BGR2RGB);
     else if (img_msg->encoding == "bgra8")
         cv::cvtColor(img, img, CV_BGRA2RGB);
+    //ROS_INFO("Dims: (%zu, %zu) -> (%zu, %zu)", w, h, (size_t)dst_img_w, (size_t)dst_img_h);
     // Convert to floating point type.
     img.convertTo(img, CV_32F);
     // Resize (anisotropically) to input layer size.
@@ -85,11 +86,9 @@ sensor_msgs::Image::ConstPtr computeOutput()
     int c = 3;
     int h = (int)s_cur_dnn->height;
     int w = (int)s_cur_dnn->width;
-
     auto img_left  = preprocessImage(s_cur_img_l, w, h);
     auto img_right = preprocessImage(s_cur_img_r, w, h);
 
-    // ROS_INFO("Dims of curr_dnn width and height: (%zu, %zu)", w, h);
     auto viz_msg = boost::make_shared<sensor_msgs::Image>();
     // Set stamp and frame id to the same value as source image so we can synchronize with other nodes if needed.
     auto img_l = *s_cur_img_l;
@@ -97,28 +96,28 @@ sensor_msgs::Image::ConstPtr computeOutput()
     viz_msg->header.stamp.nsec = img_l.header.stamp.nsec;
     viz_msg->header.frame_id   = img_l.header.frame_id;
     viz_msg->encoding = "rgb8";
-    viz_msg->width    = w;
-    viz_msg->height   = h;
+    viz_msg->width    = 2 * w;
+    viz_msg->height   = 2 * h;
     viz_msg->step     = c * viz_msg->width;
     size_t count      = viz_msg->step * viz_msg->height;
     viz_msg->data.resize(count);
+
     cv::Mat dst(viz_msg->height, viz_msg->width, CV_8UC3, viz_msg->data.data());
 
-    // ROS_INFO("Dims of curr_dnn width and height: (%zu, %zu)", w, h);
-    // img_left.copyTo( dst(cv::Rect(0, 0, w, h)));
-    // img_right.copyTo(dst(cv::Rect(w, 0, w, h)));
+    img_left.copyTo( dst(cv::Rect(0, 0, w, h)));
+    img_right.copyTo(dst(cv::Rect(w, 0, w, h)));
 
     // REVIEW alexeyk: hardcode max disp for now.
     float max_disp = 96;
     auto disp_color = dispToColor(s_cur_dnn, max_disp);
-    disp_color.copyTo(dst(cv::Rect(0, 0, w, h)));
+    disp_color.copyTo(dst(cv::Rect(w, h, w, h)));
 
     // Brighten up according to max disp.
-    //cv::Mat output(h, w, CV_32FC1, (void*)s_cur_dnn->data.data());
-    //output *= 255.0 / 96;
-    //output.convertTo(output, CV_8UC1);
-    //cv::cvtColor(output, output, CV_GRAY2RGB);
-    //output.copyTo(dst(cv::Rect(0, h, w, h)));
+    cv::Mat output(h, w, CV_32FC1, (void*)s_cur_dnn->data.data());
+    output *= 255.0 / 96;
+    output.convertTo(output, CV_8UC1);
+    cv::cvtColor(output, output, CV_GRAY2RGB);
+    output.copyTo(dst(cv::Rect(0, h, w, h)));
 
     // ROS_INFO("computeOutput: %u, %u, %s", viz_msg->width, viz_msg->height, viz_msg->encoding.c_str());
 
