@@ -18,10 +18,11 @@ News:
 - 3D CAD files for a 1 axis gimbal for the ZED stereo cam added
 - Redtail install script and instructions for Jetpack 4.2.x and Ubuntu 18.04 added
 - Wiki added for installation, setup and testing
-- Solex-CC workers for ZED camera control and for managing the different ROS nodes added
+- Solex-CC workers for ZED camera control and for managing the different ROS nodes
+- Darknet-YOLO added for object recognition
+- Solex-CC worker to launch drone on a trail (trailnet) added
 
-Known Issues:
+Known Issues and restrictions:
 - ROS joy node doesnt work on Jetpack 4.2.x, therefore the joystick needs to be connected on a host PC
-- gscam does not produce a video stream over udp
 - stereoDNN with nvsmall and resnet18 results in a memory overflow and crash
 - Simulation environment has not been touched yet and therefore likely doesn't work yet
