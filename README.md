@@ -22,6 +22,6 @@ News:
 - Solex-CC worker to launch drone on a trail (trailnet) added
 
 Known Issues and restrictions:
-- ROS joy node doesnt work on Jetpack 4.2.x, therefore the joystick needs to be connected on a host PC
-- stereoDNN with nvsmall and resnet18 results in a memory overflow and crash
-- Simulation environment has not been touched yet and therefore likely doesn't work yet
+- ROS joy node doesnt work properly with a Logitech joystick on Jetpack 4.2.x, therefore the joystick needs to be connected on a host PC
+- stereoDNN with nvsmall and resnet18 results in a memory overflow and crash (not an issue since nvsmall and resnet18 are too computing intensive for the TX2 anyways)
+- Simulation environment of the original project has not been touched yet and therefore likely doesn't work yet
