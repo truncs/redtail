@@ -21,7 +21,8 @@ startdnn() {
 }
 
 stopdnn() {
-    pkill -f "ap_robot_controller" 
+    pkill -f "ap_robot_controller" # kill the ros node
+    rosrun mavros mavsys mode -c 0 # tell the drone to switch to STABILIZE
     echo "trailnet launch aborted"
     exit 0
 }
