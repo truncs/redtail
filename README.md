@@ -1,11 +1,10 @@
-# ArduCopter support for NVIDIA Redtail project
+# Extended NVIDIA Redtail project for Arducopter
 
 ## Note: This is work in progress!
-Autonomous visual navigation components for drones and ground vehicles using deep learning.
-This project is based on the original Redatil project by Nvidia see [wiki](https://github.com/NVIDIA-Jetson/redtail/wiki) and includes the changes needed to make it run with the [Arducopter flightcontroller firmware](http://ardupilot.org/copter/) and the latest Nvidia Jetson 4.2.x firmware for the Nvidia TX2 computer.
-It also incorporates the migration to Jetpack 4.2.x of the work from [GSoC 2018-Complex Autonomous Tasks Onboard a UAV using a Monocular Camera](https://discuss.ardupilot.org/t/gsoc-2018-complex-autonomous-tasks-onboard-a-uav-using-a-monocular-camera-nvidia-redtail/319333)
+Autonomous visual navigation components for drones using deep learning.
+This project is based on the original Redtail project by Nvidia see [wiki](https://github.com/NVIDIA-Jetson/redtail/wiki) and includes the changes needed to make it run with the [Arducopter flightcontroller firmware](http://ardupilot.org/copter/) based on the work of https://github.com/ArduPilot/redtail. It also incorporates the migration of all project components to Jetpack 4.2. and a number of enhancements for video streaming, ROS node control, YOLO, and so on.
 
-This project contains deep neural networks, computer vision and control code, hardware instructions and other artifacts that allow users to build a drone or a ground vehicle which can autonomously navigate through highly unstructured environments like forest trails, sidewalks, etc. The original Nvidia TrailNet DNN for visual navigation is running on NVIDIA's Jetson embedded platform. [arXiv paper](https://arxiv.org/abs/1705.02550) describes TrailNet and other runtime modules in detail.
+This project contains deep neural networks, computer vision and control code, hardware instructions and other artifacts that allow users to build a drone which can autonomously navigate through highly unstructured environments like forest trails, sidewalks, etc. The original Nvidia TrailNet DNN for visual navigation is running on NVIDIA's Jetson embedded platform. [arXiv paper](https://arxiv.org/abs/1705.02550) describes TrailNet and other runtime modules in detail.
 
 The project also contains [Stereo DNN](../master/stereoDNN/) models and runtime which allow to estimate depth from a [ZED stereo camera](https://www.stereolabs.com/zed/) on NVIDIA platforms.
 
@@ -18,10 +17,12 @@ News:
 - 3D CAD files for a 1 axis gimbal for the ZED stereo cam added
 - Redtail install script and instructions for Jetpack 4.2.x and Ubuntu 18.04 added
 - Wiki added for installation, setup and testing
-- Solex-CC workers for ZED camera control and for managing the different ROS nodes added
+- RTSP video streaming server added
+- Solex-CC workers for ZED camera control and for managing the different ROS nodes
+- Darknet-YOLO added for object recognition
+- Solex-CC worker to launch drone on a trail (trailnet) added
 
-Known Issues:
-- ROS joy node doesnt work on Jetpack 4.2.x, therefore the joystick needs to be connected on a host PC
-- gscam does not produce a video stream over udp
-- stereoDNN with nvsmall and resnet18 results in a memory overflow and crash
-- Simulation environment has not been touched yet and therefore likely doesn't work yet
+Known Issues and restrictions:
+- ROS joy node doesnt work properly with a Logitech joystick on Jetpack 4.2.x, therefore the joystick needs to be connected on a host PC
+- stereoDNN with nvsmall and resnet18 results in a memory overflow and crash (not an issue since nvsmall and resnet18 are too computing intensive for the TX2 anyways)
+- Simulation environment of the original project has not been touched yet and therefore likely doesn't work yet
