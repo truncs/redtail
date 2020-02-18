@@ -16,7 +16,7 @@ For installation, test and flight instructions please see the wiki in this git: 
 News:
 - ROS joy node supported via an Android device. Since the ROS /joy node implementation doesnt work properly with a Logitech joystick on Jetpack 4.2.x an app has been [added](https://github.com/mtbsteve/redtail/wiki/Setup-of-the-TX2,-ZED-and-Host-PC#joystick-control) to support joystick control 
 - Solex-CC worker to launch drone on a trail (trailnet) added
-- Solex-CC [workers](https://github.com/mtbsteve/redtail/wiki/Usage-of-Solex-CC-to-create-custom-controls)for ZED camera control and for managing the different ROS nodes
+- Solex-CC [workers](https://github.com/mtbsteve/redtail/wiki/Usage-of-Solex-CC-to-create-custom-controls) for ZED camera control and for managing the different ROS nodes
 - 3D CAD files for a 1 axis gimbal for the ZED stereo cam added
 - Redtail install script and instructions for Jetpack 4.2.x and Ubuntu 18.04 added
 - Wiki added for installation, setup and testing
@@ -25,4 +25,4 @@ News:
 
 Known Issues and restrictions:
 - stereoDNN with nvsmall and resnet18 results in a memory overflow and crash (not an issue since nvsmall and resnet18 are too computing intensive for the TX2 anyways)
-- Simulation environment of the original project has not been touched yet and therefore likely doesn't work yet
+- Simulation environment of the original project has not been touched and therefore likely doesn't work yet
