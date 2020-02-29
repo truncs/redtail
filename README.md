@@ -12,7 +12,8 @@ For whitepapers, demos, and a detailed build and configuration description pleas
 
 
 News:
-- ROS joy node supported via an Android device. Since the ROS /joy node implementation doesnt work properly with a Logitech joystick on Jetpack 4.2.x an app has been [added](https://github.com/mtbsteve/redtail/wiki/Setup-of-the-TX2,-ZED-and-Host-PC#joystick-control) to support joystick control 
+- Solex-CC worker for joystick control (alternative to a seperate app) added
+- ROS joy node supported via an Android device. Since the ROS /joy node implementation doesnt work properly with a Logitech joystick on Jetpack 4.2.x an app has been [added](https://github.com/mtbsteve/redtail/wiki/Setup-of-the-TX2,-ZED-and-Host-PC#joystick-control) 
 - Solex-CC worker to launch drone on a trail (trailnet) added as well as a Solex-CC worker for control through Solex. 
 - Solex-CC [workers](https://github.com/mtbsteve/redtail/wiki/Usage-of-Solex-CC-to-create-custom-controls) for ZED camera control and for managing the different ROS nodes
 - 3D CAD files for a 1 axis gimbal for the ZED stereo cam added
