@@ -3,8 +3,8 @@
 const ATTRS = {
     id: "joystick",
     // Name/description
-    name: "Joystick support",
-    description: "Joystick support",
+    name: "ROS Gamepad support",
+    description: "ROS /joy node support for Logitech 710",
     // Does this worker want to loop?
     looper: false,
     // Mavlink messages we're interested in
@@ -43,14 +43,12 @@ function loop() {
 
 function onLoad() {
     d("onLoad()");
-    const rosnodejs = require('rosnodejs');
-    rosnodejs.shutdown();
 }
 
 function onUnload() {
     d("onUnload()");
-    const rosnodejs = require('rosnodejs');
-    rosnodejs.shutdown();
+    //const rosnodejs = require('rosnodejs');
+    //rosnodejs.shutdown();
 }
 
 function onMavlinkMessage(msg) { }
@@ -83,84 +81,68 @@ function onGCSMessage(msg) {
 }
 
 function onKeyEvent(msg) {
-    //d(JSON.stringify(msg.code));
-    switch(msg.code) {
-       case 96: {
-             joy_buttons[1]=1;
-             break;
-             }
-       case 97: {
-             joy_buttons[2]=1;
-             break;
-             }
-       case 99: {
-             joy_buttons[0]=1;
-             break;
-             }
-       case 100: {
-             joy_buttons[3]=1;
-             break;
-             }
-       case 102: {
-             joy_buttons[4]=1;
-             break;
-             }
-       case 103: {
-             joy_buttons[5]=1;
-             break;
-             }
-       case 104: {
-             joy_buttons[6]=1;
-             break;
-             }
-       case 105: {
-             joy_buttons[7]=1;
-             break;
-             }
-       case 106: {
-             joy_buttons[10]=1;
-             break;
-             }
-       case 107: {
-             joy_buttons[11]=1;
-             break;
-             }
-       // start and back buttons not yet implemented in Solex
-       case 108: {
-             joy_buttons[8]=1;
-             break;
-             }
-       case 109: {
-             joy_buttons[9]=1;
-             break;
-             }
+    //d(`onGCSMessage(): msg=${msg[96]}`);
+    if (msg[96] != null) {
+       joy_buttons[1]=(msg[96] != null) ? msg[96] : 0;
+    }
+    if (msg[97] != null) {
+       joy_buttons[2]=(msg[97] != null) ? msg[97] : 0;
+    }
+    if (msg[99] != null) {
+       joy_buttons[0]=(msg[99] != null) ? msg[99] : 0;
+    }
+    if (msg[100] != null) {
+       joy_buttons[3]=(msg[100] != null) ? msg[100] : 0;
+    }
+    if (msg[102] != null) {
+       joy_buttons[4]=(msg[102] != null) ? msg[102] : 0;
+    }
+    if (msg[103] != null) {
+       joy_buttons[5]=(msg[103] != null) ? msg[103] : 0;
+    }
+    if (msg[104] != null) {
+       joy_buttons[6]=(msg[104] != null) ? msg[104] : 0;
+    }
+    if (msg[105] != null) {
+       joy_buttons[7]=(msg[105] != null) ? msg[105] : 0;
+    }
+    if (msg[106] != null) {
+       joy_buttons[10]=(msg[106] != null) ? msg[106] : 0;
+    }
+    if (msg[107] != null) {
+       joy_buttons[11]=(msg[107] != null) ? msg[107] : 0;
+    }
+    if (msg[108] != null) {
+       joy_buttons[8]=(msg[108] != null) ? msg[108] : 0;
+    }
+    if (msg[109] != null) {
+       joy_buttons[9]=(msg[109] != null) ? msg[109] : 0;
     }
     json_joy_buttons=(JSON.stringify(joy_buttons));
+    //d(json_joy_buttons);
     
     //send the movements to /joy_node
     const rosnodejs = require('rosnodejs');
+    const log = rosnodejs.log;
     rosnodejs.initNode('my_node', {onTheFly: true})
     .then(nh => {
         const pub = nh.advertise('/joy', 'sensor_msgs/Joy');
         var joymsg = "{\"header\":{\"seq\":"+sequence_ID+",\"stamp\":{\"secs\":"+time_stamp_sec+",\"nsecs\":"+time_stamp_nsec+"},\"frame_id\":\""+frame_id+"\"},\"axes\":"+json_joy_axes+",\"buttons\":"+json_joy_buttons+"}";
         var joymsgObj=JSON.parse(joymsg);
         pub.publish(joymsgObj);
-    })
+        })
     .catch(err => {
           d(`error log ${log(err)}`);
     });
-
-    // DEFECT: reset the buttons to zero again to emulate somehow correct button behaviour
-    joy_buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    //json_joy_buttons=(JSON.stringify(joy_buttons));
 }
 
 function onMotionEvent(msg) {
     //d(JSON.stringify(msg));
-    joy_axes[0]=(msg.s_l_x != null) ? msg.s_l_x : 0;
-    joy_axes[1]=(msg.s_l_y != null) ? msg.s_l_y : 0;
-    joy_axes[2]=(msg.s_r_x != null) ? msg.s_r_x : 0;
-    joy_axes[3]=(msg.s_r_y != null) ? msg.s_r_y : 0;
+    // joy axes represent stick mode #3 - for "normal" stick mode 1 behavior switch axes [0] and [3] plus axes [1] and [3] 
+    joy_axes[2]=(msg.s_l_x != null) ? msg.s_l_x : 0;
+    joy_axes[3]=(msg.s_l_y != null) ? msg.s_l_y : 0;
+    joy_axes[0]=(msg.s_r_x != null) ? msg.s_r_x : 0;
+    joy_axes[1]=(msg.s_r_y != null) ? msg.s_r_y : 0;
     joy_axes[4]=(msg.dp_x != null) ? msg.dp_x : 0;
     joy_axes[5]=(msg.dp_y != null) ? msg.dp_y : 0;
 
