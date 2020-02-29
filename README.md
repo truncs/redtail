@@ -2,6 +2,8 @@
 Autonomous visual navigation components for drones using deep learning.
 This project is based on the original Redtail project by Nvidia see [wiki](https://github.com/NVIDIA-Jetson/redtail/wiki) and includes the changes needed to make it run with the [Arducopter flightcontroller firmware](http://ardupilot.org/copter/) based on the work of https://github.com/ArduPilot/redtail. It also incorporates the migration of all project components to Jetpack 4.2. and a number of enhancements for video streaming, ROS node control, YOLO, and so on.
 
+Video: https://youtu.be/aiHJ1yuJRVU
+
 This project contains deep neural networks, computer vision and control code, hardware instructions and other artifacts that allow users to build a drone which can autonomously navigate through highly unstructured environments like forest trails, sidewalks, etc. The original Nvidia TrailNet DNN for visual navigation is running on NVIDIA's Jetson embedded platform. [arXiv paper](https://arxiv.org/abs/1705.02550) describes TrailNet and other runtime modules in detail.
 
 The project also contains [Stereo DNN](../master/stereoDNN/) models and runtime which allow to estimate depth from a [ZED stereo camera](https://www.stereolabs.com/zed/) on NVIDIA platforms.
