@@ -1,0 +1,24 @@
+# Set up your streams to rtsp here.
+port: "8554"
+streams: # Cannot rename - must leave this as is.
+
+  stream-zed_camera:
+    type: topic
+    source: /zed/zed_node/left/image_rect_color
+    mountpoint: /zedimage
+    caps: video/x-raw,framerate=10/1,width=1920,height=1080
+    bitrate: 300
+
+  stream-zed_ros_depth:
+    type: topic
+    source: /zed/zed_node/confidence/confidence_image
+    mountpoint: /zedconf
+    caps: video/x-raw,framerate=10/1,width=640,height=480
+    bitrate: 100
+
+  stream-zed_ros_yolo:
+    type: topic
+    source: /darknet_ros/detection_image
+    mountpoint: /zedyolo
+    caps: video/x-raw,framerate=10/1,width=640,height=480
+    bitrate: 100
