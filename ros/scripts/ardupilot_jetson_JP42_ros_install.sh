@@ -168,10 +168,10 @@ if [ -d /usr/local/zed ]; then
     # run test app. See also: https://github.com/NVIDIA-AI-IOT/redtail/tree/master/stereoDNN#building-inference-code
     # ./bin/nvstereo_tests_debug ./tests/data
     # if the test ran successfully, then we link the created samples and libs to the catkin workspace
-    mkdir $CATKIN_WS/src/stereo_dnn_ros/stereoDNN
-    ln -s $HOME/redtail/stereoDNN/build $CATKIN_WS/src/stereo_dnn_ros/stereoDNN/
-    ln -s $HOME/redtail/stereoDNN/lib $CATKIN_WS/src/stereo_dnn_ros/stereoDNN/
-    ln -s $HOME/redtail/stereoDNN/sample_app $CATKIN_WS/src/stereo_dnn_ros/stereoDNN/
+    mkdir $CATKIN_WS/src/stereoDNN
+    ln -s $HOME/redtail/stereoDNN/build $CATKIN_WS/src/stereoDNN/
+    ln -s $HOME/redtail/stereoDNN/lib $CATKIN_WS/src/stereoDNN/
+    ln -s $HOME/redtail/stereoDNN/sample_app $CATKIN_WS/src/stereoDNN/
 fi
 
 cd $CATKIN_WS
