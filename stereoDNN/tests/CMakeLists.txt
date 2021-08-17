@@ -4,7 +4,7 @@ set(PROJECT_NAME nvstereo_tests)
 project(${PROJECT_NAME})
 
 find_package(CUDA 9.0 REQUIRED)
-find_package(OpenCV 3.3.1 REQUIRED)
+find_package(OpenCV 4.1.1 REQUIRED)
 
 set(GTEST_ROOT "/usr/src/gtest")
 find_package(GTest REQUIRED)

@@ -13,11 +13,11 @@ using namespace nvinfer1;
 // -----------------------------------------------------------------
 // ELU activation function plugin.
 // -----------------------------------------------------------------
-class EluPlugin: public IPluginExt
+class EluPlugin: public IPluginV2
 {
 public:
     EluPlugin(DataType data_type, ILogger& log, std::string name):
-        data_type_(data_type), format_(PluginFormat::kNCHW),
+        data_type_(data_type), format_(PluginFormat::kLINEAR),
         max_batch_size_(0), log_(log), name_(name)
     {
         assert(data_type_ == DataType::kFLOAT || data_type_ == DataType::kHALF);
@@ -42,22 +42,22 @@ public:
 
     EluPlugin(EluPlugin&&) = delete;
 
-    bool supportsFormat(DataType type, PluginFormat format) const override
+    bool supportsFormat(DataType type, PluginFormat format) const noexcept override
     {
         // On TX2, the most efficient format in FP16 is kNC2HW2. Using other formats will make
         // TRT to insert reformat layers which hurts performance.
-        bool supported_formats = (format == PluginFormat::kNCHW || format == PluginFormat::kNC2HW2);
+        bool supported_formats = (format == PluginFormat::kLINEAR || format == PluginFormat::kCHW2);
         // REVIEW alexeyk: by using data type provided in ctor we effectively disabling
         // TRT autotuner which could use different types during tuning. Fine for now.
         return (type == data_type_) && supported_formats;
     }
 
-    int getNbOutputs() const override
+    int getNbOutputs() const noexcept override
     {
         return 1;
     }
 
-    Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) override
+    Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) noexcept override
     {
         assert(nbInputDims == 1);
         in_dims_ = inputs[0];
@@ -67,7 +67,7 @@ public:
     }
 
     void configureWithFormat(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs,
-                             DataType type, PluginFormat format, int maxBatchSize) override
+                             DataType type, PluginFormat format, int maxBatchSize) noexcept override
     {
         assert(nbInputs == 1);
         assert(nbOutputs == 1);
@@ -84,7 +84,7 @@ public:
         log_.log(ILogger::Severity::kINFO, str.c_str());
     }
 
-    int initialize() override
+    int initialize() noexcept override
     {
         cudnnStatus_t status;
 
@@ -98,7 +98,7 @@ public:
         return 0;
     }
 
-    void terminate() override
+    void terminate() noexcept override
     {
         assert(isValid());
 
@@ -115,12 +115,12 @@ public:
         assert(!isValid());
     }
 
-    size_t getWorkspaceSize(int maxBatchSize) const
+    size_t getWorkspaceSize(int maxBatchSize) const noexcept override
     {
         return 0;
     }
 
-    int enqueue(int batchSize, const void*const * inputs, void** outputs, void* workspace, cudaStream_t stream) override
+    int enqueue(int batchSize,  void const *const *inputs, void *const *outputs, void* workspace, cudaStream_t stream) noexcept override
     {
         assert(isValid());
 
@@ -134,19 +134,51 @@ public:
         return status == CUDNN_STATUS_SUCCESS ? 0 : -1;
     }
 
-    size_t getSerializationSize() override
+    size_t getSerializationSize() const noexcept override
     {
         assert(isValid());
         return serialize().size();
     }
 
-    void serialize(void* buffer) override
+    void serialize(void* buffer) const noexcept override
     {
         assert(buffer != nullptr);
         assert(isValid());
 
         auto data = serialize();
         std::memcpy(buffer, data.c_str(), data.size());
+    }
+
+    const char* getPluginType() const noexcept override
+    {
+        return "Elu";
+    }
+
+    const char* getPluginVersion() const noexcept override
+    {
+        return "2";
+    }
+
+    void setPluginNamespace(const char* libNamespace) noexcept override
+    {
+        namespace_ = libNamespace;
+    }
+
+    const char* getPluginNamespace() const noexcept override
+    {
+        return namespace_.data();
+    }
+
+    IPluginV2* clone() const noexcept override
+    {
+        auto* plugin = new EluPlugin(data_type_, log_, name_);
+
+        return plugin;
+    }
+
+    void destroy() noexcept override
+    {
+        delete this;
     }
 
 private:
@@ -164,7 +196,7 @@ private:
         std::copy(in_dims_.d, in_dims_.d + in_dims_.nbDims, tensor_dims_.d + 1);
         // If the current format is kNC2HW2 and C is odd, we need to adjust actual
         // tensor dimensions to reflect packing.
-        if (format_ == PluginFormat::kNC2HW2)
+        if (format_ == PluginFormat::kCHW2)
             tensor_dims_.d[1] += in_dims_.d[0] % 2;
 
         tensor_strides_ = DimsUtils::getStrides(tensor_dims_);
@@ -181,7 +213,7 @@ private:
         CHECK(cudnnSetTensorNdDescriptor(t_desc_, trtToCudnnDataType(data_type_), tensor_dims_.nbDims, tensor_dims_.d, tensor_strides_.d));
     }
 
-    std::string serialize()
+    std::string serialize() const
     {
         std::ostringstream ss(std::ios_base::binary);
         write_stream((int32_t)StereoDnnPluginFactory::PluginType::kElu, ss);
@@ -210,10 +242,11 @@ private:
 
     ILogger&    log_;
     std::string name_;
+    std::string namespace_;
 };
 
 // Factory method.
-IPlugin* PluginContainer::createEluPlugin(DataType data_type, std::string name)
+IPluginV2* PluginContainer::createEluPlugin(DataType data_type, std::string name)
 {
     std::lock_guard<std::mutex> lock(lock_);
     plugins_.push_back(new EluPlugin(data_type, log_, name));
@@ -221,7 +254,7 @@ IPlugin* PluginContainer::createEluPlugin(DataType data_type, std::string name)
 }
 
 // Deserialization method.
-IPlugin* PluginContainer::deserializeEluPlugin(const char* name, const void* data, size_t size)
+IPluginV2* PluginContainer::deserializeEluPlugin(const char* name, const void* data, size_t size)
 {
     std::lock_guard<std::mutex> lock(lock_);
     plugins_.push_back(new EluPlugin(name, data, size, log_));

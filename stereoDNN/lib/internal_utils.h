@@ -125,43 +125,43 @@ public:
     PluginContainer(PluginContainer&&) = delete;
 
     // ELU plugin.
-    IPlugin* createEluPlugin(DataType data_type, std::string name) override;
-    IPlugin* deserializeEluPlugin(const char* name, const void* data, size_t size) override;
+    IPluginV2* createEluPlugin(DataType data_type, std::string name) override;
+    IPluginV2* deserializeEluPlugin(const char* name, const void* data, size_t size) override;
 
     // Cost volume plugin.
-    IPlugin* createCostVolumePlugin(DataType data_type, CostVolumeType cv_type, int max_disparity,
+    IPluginV2* createCostVolumePlugin(DataType data_type, CostVolumeType cv_type, int max_disparity,
                                     std::string name) override;
-    IPlugin* deserializeCostVolumePlugin(const char* name, const void* data, size_t size) override;
+    IPluginV2* deserializeCostVolumePlugin(const char* name, const void* data, size_t size) override;
 
     // 3D convolution.
-    IPlugin* createConv3DPlugin(Conv3DType conv_type, Dims kernel_dims,
+    IPluginV2* createConv3DPlugin(Conv3DType conv_type, Dims kernel_dims,
                                 Dims stride_dims, Dims pad_start_dims, Dims pad_end_dims,
                                 Weights kernel_weights, Weights bias_weights,
                                 std::string name) override;
 
     // Transposed 3D convolution.
-    IPlugin* createConv3DTransposePlugin(Conv3DType conv_type, Dims kernel_dims, Dims out_dims,
+    IPluginV2* createConv3DTransposePlugin(Conv3DType conv_type, Dims kernel_dims, Dims out_dims,
                                          Dims stride_dims, Dims pad_start_dims, Dims pad_end_dims,
                                          Weights kernel_weights, Weights bias_weights,
                                          std::string name) override;
 
     // Transform.
-    IPlugin* createTransformPlugin(Permutation permutation, std::string name) override;
+    IPluginV2* createTransformPlugin(Permutation permutation, std::string name) override;
 
     // Padding.
-    IPlugin* createPaddingPlugin(DimsNCHW pad_start, DimsNCHW pad_end,
+    IPluginV2* createPaddingPlugin(Dims4 pad_start, Dims4 pad_end,
                                  std::string name) override;
 
-    IPlugin* createSlicePlugin(Dims dims, Dims slice_start, Dims slice_end,
+    IPluginV2* createSlicePlugin(Dims dims, Dims slice_start, Dims slice_end,
                                std::string name) override;
 
-    IPlugin* createSoftargmaxPlugin(DataType data_type, SoftargmaxType sm_type, std::string name) override;
-    IPlugin* deserializeSoftargmaxPlugin(const char* name, const void* data, size_t size) override;
+    IPluginV2* createSoftargmaxPlugin(DataType data_type, SoftargmaxType sm_type, std::string name) override;
+    IPluginV2* deserializeSoftargmaxPlugin(const char* name, const void* data, size_t size) override;
 
 private:
     // TensorRT IPlugin interface has protected dtor so cannot use unique_ptr
     // or delete plugins in the container dtor.
-    std::vector<IPlugin*> plugins_;
+    std::vector<IPluginV2*> plugins_;
     std::mutex            lock_;
 
     ILogger& log_;

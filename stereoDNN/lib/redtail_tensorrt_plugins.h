@@ -6,6 +6,9 @@
 
 #include <memory>
 #include <NvInfer.h>
+#include <NvCaffeParser.h>
+#include <NvInferRuntimeCommon.h>
+
 
 namespace redtail { namespace tensorrt
 {
@@ -52,35 +55,35 @@ public:
     virtual ~IPluginContainer() = default;
 
     // ELU plugin.
-    virtual IPlugin* createEluPlugin(DataType data_type, std::string name) = 0;
-    virtual IPlugin* deserializeEluPlugin(const char* name, const void* data, size_t size) = 0;
+    virtual IPluginV2* createEluPlugin(DataType data_type, std::string name) = 0;
+    virtual IPluginV2* deserializeEluPlugin(const char* name, const void* data, size_t size) = 0;
 
     // Cost volume plugin.
-    virtual IPlugin* createCostVolumePlugin(DataType data_type, CostVolumeType cv_type, int max_disparity,
+    virtual IPluginV2* createCostVolumePlugin(DataType data_type, CostVolumeType cv_type, int max_disparity,
                                             std::string name) = 0;
-    virtual IPlugin* deserializeCostVolumePlugin(const char* name, const void* data, size_t size) = 0;
+    virtual IPluginV2* deserializeCostVolumePlugin(const char* name, const void* data, size_t size) = 0;
 
     // 3D convolution.
-    virtual IPlugin* createConv3DPlugin(Conv3DType conv_type, Dims kernel_dims,
+    virtual IPluginV2* createConv3DPlugin(Conv3DType conv_type, Dims kernel_dims,
                                         Dims stride_dims, Dims pad_start_dims, Dims pad_end_dims,
                                         Weights kernel_weights, Weights bias_weights,
                                         std::string name) = 0;
 
-    virtual IPlugin* createConv3DTransposePlugin(Conv3DType conv_type, Dims kernel_dims, Dims out_dims,
+    virtual IPluginV2* createConv3DTransposePlugin(Conv3DType conv_type, Dims kernel_dims, Dims out_dims,
                                                  Dims stride_dims, Dims pad_start_dims, Dims pad_end_dims,
                                                  Weights kernel_weights, Weights bias_weights,
                                                  std::string name) = 0;
 
-    virtual IPlugin* createTransformPlugin(Permutation permutation, std::string name) = 0;
+    virtual IPluginV2* createTransformPlugin(Permutation permutation, std::string name) = 0;
 
-    virtual IPlugin* createPaddingPlugin(DimsNCHW pad_start, DimsNCHW pad_end,
+    virtual IPluginV2* createPaddingPlugin(Dims4 pad_start, Dims4 pad_end,
                                          std::string name) = 0;
 
-    virtual IPlugin* createSlicePlugin(Dims dims, Dims slice_start, Dims slice_end,
+    virtual IPluginV2* createSlicePlugin(Dims dims, Dims slice_start, Dims slice_end,
                                        std::string name) = 0;
 
-    virtual IPlugin* createSoftargmaxPlugin(DataType data_type, SoftargmaxType sm_type, std::string name) = 0;
-    virtual IPlugin* deserializeSoftargmaxPlugin(const char* name, const void* data, size_t size) = 0;
+    virtual IPluginV2* createSoftargmaxPlugin(DataType data_type, SoftargmaxType sm_type, std::string name) = 0;
+    virtual IPluginV2* deserializeSoftargmaxPlugin(const char* name, const void* data, size_t size) = 0;
 
     static std::unique_ptr<IPluginContainer> create(ILogger& log);
 };
@@ -88,45 +91,45 @@ public:
 // -----------------------------------------------------------------
 // Plugins helper functions.
 // -----------------------------------------------------------------
-ILayer* addElu(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+IPluginV2Layer* addElu(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
                DataType data_type, const std::string& name);
 
-ILayer* addCostVolume(IPluginContainer& plugin_factory, INetworkDefinition& network,
+IPluginV2Layer* addCostVolume(IPluginContainer& plugin_factory, INetworkDefinition& network,
                       ITensor& left_input, ITensor& right_input,
                       CostVolumeType cv_type, int max_disparity,
                       DataType data_type, const std::string& name);
 
-ILayer* addConv3D(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+IPluginV2Layer* addConv3D(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
                   Conv3DType conv_type, Dims kernel_dims, Dims stride_dims,
                   Dims pad_start_dims, Dims pad_end_dims,
                   Weights kernel_weights, Weights bias_weights,
                   const std::string& name);
 
-ILayer* addConv3DTranspose(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+IPluginV2Layer* addConv3DTranspose(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
                            Conv3DType conv_type, Dims kernel_dims, Dims out_dims,
                            Dims stride_dims, Dims pad_start_dims, Dims pad_end_dims,
                            Weights kernel_weights, Weights bias_weights,
                            const std::string& name);
 
-ILayer* addSlice(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+IPluginV2Layer* addSlice(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
                  Dims dims, Dims slice_start, Dims slice_end,
                  const std::string& name);
 
-ILayer* addTransform(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+IPluginV2Layer* addTransform(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
                      Permutation permutation,
                      const std::string& name);
 
-ILayer* addPad(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
-               DimsNCHW pad_start, DimsNCHW pad_end,
+IPluginV2Layer* addPad(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+               Dims4 pad_start, Dims4 pad_end,
                const std::string& name);
 
-ILayer* addSoftargmax(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+IPluginV2Layer* addSoftargmax(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
                       SoftargmaxType sm_type, DataType data_type, const std::string& name);
 
 // -----------------------------------------------------------------
 // Plugin factory used in (de)serialization.
 // -----------------------------------------------------------------
-class StereoDnnPluginFactory: public IPluginFactory
+class StereoDnnPluginFactory: public nvcaffeparser1::IPluginFactoryV2
 {
 public:
     enum class PluginType
@@ -139,7 +142,8 @@ public:
 public:
     StereoDnnPluginFactory(IPluginContainer& container);
 
-    IPlugin* createPlugin(const char* layerName, const void* serialData, size_t serialLength) override;
+    virtual IPluginV2* createPlugin(const char* layerName, const Weights* weights, int32_t nbWeights, const char* libNamespace = "")  noexcept override;
+
 
 private:
     IPluginContainer& container_;

@@ -13,7 +13,7 @@ using namespace nvinfer1;
 // -----------------------------------------------------------------
 // Tensor transform plugin.
 // -----------------------------------------------------------------
-class TransformPlugin: public IPlugin
+class TransformPlugin: public IPluginV2
 {
 public:
     TransformPlugin(Permutation permutation, ILogger& log, std::string name):
@@ -23,18 +23,18 @@ public:
 
     TransformPlugin(TransformPlugin&&) = delete;
 
-    int getNbOutputs() const override
+    int getNbOutputs() const noexcept override
     {
         return 1;
     }
 
-    Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) override
+    Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) noexcept override
     {
         assert(nbInputDims == 1);
         // Only NCHW format is supported for now, TRT does not work (assert) with generic Dims.
         assert(inputs[0].nbDims == 4);
 
-        in_dims_ = DimsNCHW(inputs[0].d[0], inputs[0].d[1], inputs[0].d[2], inputs[0].d[3]);
+        in_dims_ = Dims4(inputs[0].d[0], inputs[0].d[1], inputs[0].d[2], inputs[0].d[3]);
         // Sanity check.
         int actual_sum   = std::accumulate(permutation_.order, permutation_.order + in_dims_.nbDims, 0, std::plus<int>());
         int expected_sum = in_dims_.nbDims * (in_dims_.nbDims - 1) / 2;
@@ -47,7 +47,8 @@ public:
         return out_dims_;
     }
 
-    void configure(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs, int maxBatchSize) override
+    void configureWithFormat(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs, DataType type, 
+                             PluginFormat format, int maxBatchSize) noexcept override
     {
         assert(nbInputs  == 1);
         assert(nbOutputs == 1);
@@ -63,13 +64,13 @@ public:
         assert(isValid());
     }
 
-    int initialize() override
+    int initialize() noexcept override
     {
         assert(isValid());
         return 0;
     }
 
-    void terminate() override
+    void terminate() noexcept override
     {
         assert(isValid());
 
@@ -86,12 +87,12 @@ public:
         assert(!isValid());
     }
 
-    size_t getWorkspaceSize(int maxBatchSize) const
+    size_t getWorkspaceSize(int maxBatchSize) const noexcept override
     {
         return 0;
     }
 
-    int enqueue(int batchSize, const void*const * inputs, void** outputs, void* workspace, cudaStream_t stream) override
+    int enqueue(int batchSize, void const *const *inputs, void *const *outputs, void* workspace, cudaStream_t stream) noexcept override
     {
         assert(isValid());
 
@@ -107,13 +108,51 @@ public:
         return status == CUDNN_STATUS_SUCCESS ? 0 : -1;
     }
 
-    size_t getSerializationSize() override
+    const char* getPluginType() const noexcept override
+    {
+        return "Transform";
+    }
+
+    const char* getPluginVersion() const noexcept override
+    {
+        return "2";
+    }
+
+    size_t getSerializationSize() const noexcept override
     {
         return 0;
     }
 
-    void serialize(void* buffer) override
+    void serialize(void* buffer) const noexcept override
     {
+    }
+
+    bool supportsFormat(DataType type, PluginFormat format) const noexcept override
+    {
+        assert(type == DataType::kFLOAT);
+        assert(format == PluginFormat::kLINEAR);
+        return true;
+    }
+
+    void setPluginNamespace(const char* libNamespace) noexcept override
+    {
+        namespace_ = libNamespace;
+    }
+
+    const char* getPluginNamespace() const noexcept override
+    {
+        return namespace_.data();
+    }
+
+    IPluginV2* clone() const noexcept override
+    {
+        auto* plugin = new TransformPlugin(permutation_, log_, name_);
+        return plugin;
+    }
+
+    void destroy() noexcept override
+    {
+        delete this;
     }
 
 private:
@@ -170,8 +209,8 @@ private:
     cudnnTensorDescriptor_t out_desc_ = nullptr;
 
     Permutation permutation_;
-    DimsNCHW    in_dims_;
-    DimsNCHW    out_dims_;
+    Dims4    in_dims_;
+    Dims4    out_dims_;
 
     Dims        tensor_dims_;
     Dims        in_tensor_strides_;
@@ -179,10 +218,11 @@ private:
 
     ILogger&    log_;
     std::string name_;
+    std::string namespace_;
 };
 
 // Factory method.
-IPlugin* PluginContainer::createTransformPlugin(Permutation permutation, std::string name)
+IPluginV2* PluginContainer::createTransformPlugin(Permutation permutation, std::string name)
 {
     std::lock_guard<std::mutex> lock(lock_);
     plugins_.push_back(new TransformPlugin(permutation, log_, name));

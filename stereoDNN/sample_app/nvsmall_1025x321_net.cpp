@@ -19,10 +19,10 @@ using namespace nvinfer1;
 using weight_map = std::unordered_map<std::string, Weights>;
 
 INetworkDefinition* createNVSmall1025x321Network(IBuilder& builder, IPluginContainer& plugin_factory,
-                                     DimsCHW img_dims, const weight_map& weights, DataType data_type,
+                                     Dims3 img_dims, const weight_map& weights, DataType data_type,
                                      ILogger& log)
 {
-    INetworkDefinition* network = builder.createNetwork();
+    INetworkDefinition* network = builder.createNetworkV2(0);
     assert(network != nullptr);
     // Input tensor.
     auto left = network->addInput("left", DataType::kFLOAT, img_dims);
@@ -45,12 +45,12 @@ INetworkDefinition* createNVSmall1025x321Network(IBuilder& builder, IPluginConta
     right_scale->setName("right_scale");
 
     // left_conv1 convolution op.
-    auto left_conv1 = network->addConvolution(*left_scale->getOutput(0), 32, DimsHW {5, 5},
+    auto left_conv1 = network->addConvolutionNd(*left_scale->getOutput(0), 32, DimsHW {5, 5},
                                        weights.at("left_conv1_k"), weights.at("left_conv1_b"));
     assert(left_conv1 != nullptr);
     left_conv1->setName("left_conv1");
-    left_conv1->setStride( DimsHW {2, 2});
-    left_conv1->setPadding(DimsHW {2, 2});
+    left_conv1->setStrideNd( DimsHW {2, 2});
+    left_conv1->setPaddingNd(DimsHW {2, 2});
 
     // left_conv1_act ELU activation op.
     auto left_conv1_act = addElu(plugin_factory, *network, *left_conv1->getOutput(0), data_type, "left_conv1_act");
@@ -58,12 +58,12 @@ INetworkDefinition* createNVSmall1025x321Network(IBuilder& builder, IPluginConta
     left_conv1_act->setName("left_conv1_act");
 
     // right_conv1 convolution op.
-    auto right_conv1 = network->addConvolution(*right_scale->getOutput(0), 32, DimsHW {5, 5},
+    auto right_conv1 = network->addConvolutionNd(*right_scale->getOutput(0), 32, DimsHW {5, 5},
                                        weights.at("right_conv1_k"), weights.at("right_conv1_b"));
     assert(right_conv1 != nullptr);
     right_conv1->setName("right_conv1");
-    right_conv1->setStride( DimsHW {2, 2});
-    right_conv1->setPadding(DimsHW {2, 2});
+    right_conv1->setStrideNd( DimsHW {2, 2});
+    right_conv1->setPaddingNd(DimsHW {2, 2});
 
     // right_conv1_act ELU activation op.
     auto right_conv1_act = addElu(plugin_factory, *network, *right_conv1->getOutput(0), data_type, "right_conv1_act");
@@ -71,12 +71,12 @@ INetworkDefinition* createNVSmall1025x321Network(IBuilder& builder, IPluginConta
     right_conv1_act->setName("right_conv1_act");
 
     // left_conv2 convolution op.
-    auto left_conv2 = network->addConvolution(*left_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_conv2 = network->addConvolutionNd(*left_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_conv2_k"), weights.at("left_conv2_b"));
     assert(left_conv2 != nullptr);
     left_conv2->setName("left_conv2");
-    left_conv2->setStride( DimsHW {1, 1});
-    left_conv2->setPadding(DimsHW {1, 1});
+    left_conv2->setStrideNd(DimsHW {1, 1});
+    left_conv2->setPaddingNd(DimsHW {1, 1});
 
     // left_conv2_act ELU activation op.
     auto left_conv2_act = addElu(plugin_factory, *network, *left_conv2->getOutput(0), data_type, "left_conv2_act");
@@ -84,12 +84,12 @@ INetworkDefinition* createNVSmall1025x321Network(IBuilder& builder, IPluginConta
     left_conv2_act->setName("left_conv2_act");
 
     // right_conv2 convolution op.
-    auto right_conv2 = network->addConvolution(*right_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_conv2 = network->addConvolutionNd(*right_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_conv2_k"), weights.at("right_conv2_b"));
     assert(right_conv2 != nullptr);
     right_conv2->setName("right_conv2");
-    right_conv2->setStride( DimsHW {1, 1});
-    right_conv2->setPadding(DimsHW {1, 1});
+    right_conv2->setStrideNd(DimsHW {1, 1});
+    right_conv2->setPaddingNd(DimsHW {1, 1});
 
     // right_conv2_act ELU activation op.
     auto right_conv2_act = addElu(plugin_factory, *network, *right_conv2->getOutput(0), data_type, "right_conv2_act");
@@ -97,12 +97,12 @@ INetworkDefinition* createNVSmall1025x321Network(IBuilder& builder, IPluginConta
     right_conv2_act->setName("right_conv2_act");
 
     // left_conv3 convolution op.
-    auto left_conv3 = network->addConvolution(*left_conv2_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_conv3 = network->addConvolutionNd(*left_conv2_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_conv3_k"), weights.at("left_conv3_b"));
     assert(left_conv3 != nullptr);
     left_conv3->setName("left_conv3");
-    left_conv3->setStride( DimsHW {1, 1});
-    left_conv3->setPadding(DimsHW {1, 1});
+    left_conv3->setStrideNd(DimsHW {1, 1});
+    left_conv3->setPaddingNd(DimsHW {1, 1});
 
     // left_conv3_act ELU activation op.
     auto left_conv3_act = addElu(plugin_factory, *network, *left_conv3->getOutput(0), data_type, "left_conv3_act");
@@ -110,12 +110,12 @@ INetworkDefinition* createNVSmall1025x321Network(IBuilder& builder, IPluginConta
     left_conv3_act->setName("left_conv3_act");
 
     // right_conv3 convolution op.
-    auto right_conv3 = network->addConvolution(*right_conv2_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_conv3 = network->addConvolutionNd(*right_conv2_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_conv3_k"), weights.at("right_conv3_b"));
     assert(right_conv3 != nullptr);
     right_conv3->setName("right_conv3");
-    right_conv3->setStride( DimsHW {1, 1});
-    right_conv3->setPadding(DimsHW {1, 1});
+    right_conv3->setStrideNd(DimsHW {1, 1});
+    right_conv3->setPaddingNd(DimsHW {1, 1});
 
     // right_conv3_act ELU activation op.
     auto right_conv3_act = addElu(plugin_factory, *network, *right_conv3->getOutput(0), data_type, "right_conv3_act");
@@ -123,12 +123,12 @@ INetworkDefinition* createNVSmall1025x321Network(IBuilder& builder, IPluginConta
     right_conv3_act->setName("right_conv3_act");
 
     // left_conv4 convolution op.
-    auto left_conv4 = network->addConvolution(*left_conv3_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_conv4 = network->addConvolutionNd(*left_conv3_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_conv4_k"), weights.at("left_conv4_b"));
     assert(left_conv4 != nullptr);
     left_conv4->setName("left_conv4");
-    left_conv4->setStride( DimsHW {1, 1});
-    left_conv4->setPadding(DimsHW {1, 1});
+    left_conv4->setStrideNd(DimsHW {1, 1});
+    left_conv4->setPaddingNd(DimsHW {1, 1});
 
     // left_conv4_act ELU activation op.
     auto left_conv4_act = addElu(plugin_factory, *network, *left_conv4->getOutput(0), data_type, "left_conv4_act");
@@ -136,12 +136,12 @@ INetworkDefinition* createNVSmall1025x321Network(IBuilder& builder, IPluginConta
     left_conv4_act->setName("left_conv4_act");
 
     // right_conv4 convolution op.
-    auto right_conv4 = network->addConvolution(*right_conv3_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_conv4 = network->addConvolutionNd(*right_conv3_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_conv4_k"), weights.at("right_conv4_b"));
     assert(right_conv4 != nullptr);
     right_conv4->setName("right_conv4");
-    right_conv4->setStride( DimsHW {1, 1});
-    right_conv4->setPadding(DimsHW {1, 1});
+    right_conv4->setStrideNd(DimsHW {1, 1});
+    right_conv4->setPaddingNd(DimsHW {1, 1});
 
     // right_conv4_act ELU activation op.
     auto right_conv4_act = addElu(plugin_factory, *network, *right_conv4->getOutput(0), data_type, "right_conv4_act");
@@ -149,20 +149,20 @@ INetworkDefinition* createNVSmall1025x321Network(IBuilder& builder, IPluginConta
     right_conv4_act->setName("right_conv4_act");
 
     // left_conv5 convolution op.
-    auto left_conv5 = network->addConvolution(*left_conv4_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_conv5 = network->addConvolutionNd(*left_conv4_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_conv5_k"), weights.at("left_conv5_b"));
     assert(left_conv5 != nullptr);
     left_conv5->setName("left_conv5");
-    left_conv5->setStride( DimsHW {1, 1});
-    left_conv5->setPadding(DimsHW {1, 1});
+    left_conv5->setStrideNd(DimsHW {1, 1});
+    left_conv5->setPaddingNd(DimsHW {1, 1});
 
     // right_conv5 convolution op.
-    auto right_conv5 = network->addConvolution(*right_conv4_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_conv5 = network->addConvolutionNd(*right_conv4_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_conv5_k"), weights.at("right_conv5_b"));
     assert(right_conv5 != nullptr);
     right_conv5->setName("right_conv5");
-    right_conv5->setStride( DimsHW {1, 1});
-    right_conv5->setPadding(DimsHW {1, 1});
+    right_conv5->setStrideNd(DimsHW {1, 1});
+    right_conv5->setPaddingNd(DimsHW {1, 1});
 
     // cost_vol cost volume op.
     auto cost_vol = addCostVolume(plugin_factory, *network, *left_conv5->getOutput(0), *right_conv5->getOutput(0),

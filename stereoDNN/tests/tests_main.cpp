@@ -45,7 +45,7 @@ public:
     {
     }
 
-    void log(nvinfer1::ILogger::Severity severity, const char* msg) override
+    void log(nvinfer1::ILogger::Severity severity, const char* msg) noexcept override
     {
         if (severity > max_log_level_)
             return;
@@ -79,12 +79,10 @@ struct NetInput
     FloatVec    data;
 };
 
-IPluginLayer* addPlugin(INetworkDefinition& network, ITensor* const* inputs, int num_inputs, IPlugin* plugin)
+IPluginV2Layer* addPlugin(INetworkDefinition& network, ITensor* const* inputs, int num_inputs, IPluginV2* plugin)
 {
-    auto plugin_ext   = dynamic_cast<IPluginExt*>(plugin);
-    auto plugin_layer = plugin_ext != nullptr 
-                        ? network.addPluginExt(inputs, num_inputs, *plugin_ext)
-                        : network.addPlugin(inputs, num_inputs, *plugin);
+    auto plugin_layer =  network.addPluginV2(inputs, num_inputs, *plugin);
+
     return plugin_layer;
 }
 
@@ -109,7 +107,7 @@ FloatVec runPlugin(int batch_size, const std::vector<NetInput>& inputs, Dims out
     // Note: must use EXPECT_* as ASSERT_ contains return statement.
     EXPECT_NE(builder, nullptr);
 
-    INetworkDefinition* network = builder->createNetwork();
+    INetworkDefinition* network = builder->createNetworkV2(0);
     EXPECT_NE(network, nullptr);
 
     // Add inputs.
@@ -127,7 +125,7 @@ FloatVec runPlugin(int batch_size, const std::vector<NetInput>& inputs, Dims out
         if (in_dims.nbDims <= 3)
         {
             auto input = network->addInput(inputs[i].name.c_str(), input_data_type,
-                                           DimsCHW(in_dims.d[0], in_dims.d[1], in_dims.d[2]));
+                                           Dims3(in_dims.d[0], in_dims.d[1], in_dims.d[2]));
             EXPECT_NE(input, nullptr);
             plugin_inputs[i] = input;
         }
@@ -135,13 +133,13 @@ FloatVec runPlugin(int batch_size, const std::vector<NetInput>& inputs, Dims out
         {
             // Create input with flattened dims.
             EXPECT_EQ(DimsUtils::getTensorSize(in_dims), (int)DimsUtils::getTensorSize(in_dims));
-            DimsCHW flat_dims{1, 1, (int)DimsUtils::getTensorSize(in_dims)};
+            Dims3 flat_dims{1, 1, (int)DimsUtils::getTensorSize(in_dims)};
             auto input = network->addInput(inputs[i].name.c_str(), input_data_type, flat_dims);
             EXPECT_NE(input, nullptr);
             // Add reshape layer to restore original dims.
             auto shuf = network->addShuffle(*input);
             EXPECT_NE(shuf, nullptr);
-            shuf->setReshapeDimensions(DimsNCHW(in_dims.d[0], in_dims.d[1], in_dims.d[2], in_dims.d[3]));
+            shuf->setReshapeDimensions(Dims4(in_dims.d[0], in_dims.d[1], in_dims.d[2], in_dims.d[3]));
             plugin_inputs[i] = shuf->getOutput(0);
         }
         else
@@ -149,7 +147,7 @@ FloatVec runPlugin(int batch_size, const std::vector<NetInput>& inputs, Dims out
     }
 
     // Create plugin. The factory method can create additional layers/plugins.
-    IPlugin* plugin = factory_op();
+    IPluginV2* plugin = factory_op();
     EXPECT_NE(plugin, nullptr);
     // Add the plugin to the network.
     auto plugin_layer = addPlugin(*network, &plugin_inputs[0], inputs.size(), plugin);
@@ -169,16 +167,23 @@ FloatVec runPlugin(int batch_size, const std::vector<NetInput>& inputs, Dims out
 
     builder->setMaxBatchSize(batch_size);
     // "ought to be enough for anybody."
-    builder->setMaxWorkspaceSize(1024 * 1024 * 1024);
+    IBuilderConfig* config{builder->createBuilderConfig()};
 
-    builder->setHalf2Mode(data_type == DataType::kHALF);
+    size_t workspace_bytes = 1024 * 1024 * 1024;
+    config->setMaxWorkspaceSize(workspace_bytes);
 
-    auto engine = builder->buildCudaEngine(*network);
+    if (data_type == DataType::kHALF) {
+        config->setFlag(BuilderFlag::kFP16);
+    }
+
+    // Build the network.
+    IHostMemory* plan{builder->buildSerializedNetwork(*network, *config)};
+    IRuntime* runtime{createInferRuntime(*g_logger)};
+    std::unique_ptr<ICudaEngine> engine = std::unique_ptr<ICudaEngine>(runtime->deserializeCudaEngine(plan->data(), plan->size()));
+
     EXPECT_NE(engine, nullptr);
     // Network and builder can be destroyed right after network is built.
     // This follows the behavior in real (non-test) code.
-    builder->destroy();
-    network->destroy();
 
     // Setup input and output buffers.
     std::vector<void*> buffers(inputs.size() + 1);
@@ -243,8 +248,7 @@ FloatVec runPlugin(int batch_size, const std::vector<NetInput>& inputs, Dims out
     // Clean up.
     for (size_t i = 0; i < buffers.size(); i++)
         CHECKL(cudaFree(buffers[i]), *g_logger);
-    context->destroy();
-    engine->destroy();
+
 
     return out_h;
 }
@@ -602,8 +606,8 @@ TEST(Conv3DPluginTests, Multiple)
                                  EXPECT_NE(pad_plugin_layer, nullptr);
                                  // Add second Conv3D.
                                  auto conv_plugin_2  = f.createConv3DPlugin(Conv3DType::kTensorFlow,
-                                                                            w_dims, DimsCHW{2, 2, 2},
-                                                                            DimsCHW{0, 1, 1}, DimsCHW{0, 1, 1},
+                                                                            w_dims, Dims3{2, 2, 2},
+                                                                            Dims3{0, 1, 1}, Dims3{0, 1, 1},
                                                                             Weights{DataType::kFLOAT, w.data(), (int64_t)w.size() },
                                                                             Weights{DataType::kFLOAT, nullptr, 0 },
                                                                             "Conv3D_2");
@@ -728,7 +732,7 @@ TEST(Conv3DTransposePluginTests, DHWStridesAndPadAsymDWithMultiK)
 
     auto factory = IPluginContainer::create(*g_logger);
     // In this test we have to manually pad output by 1 in D dimension.
-    auto out_dims = DimsNCHW(x_dims.d[1], x_dims.d[2], x_dims.d[3], x_dims.d[4]);
+    auto out_dims = Dims4(x_dims.d[1], x_dims.d[2], x_dims.d[3], x_dims.d[4]);
     out_dims.d[0] += 1;
     auto actual = runPlugin(1, {{"y", y_dims, y}}, x_dims,
                             [&]
@@ -778,7 +782,7 @@ TEST(Conv3DTransposePluginTests, DHWStridesAndPadAsymDWithMultiKWithBiasAndElu)
     auto data_type = DataType::kFLOAT;
     auto factory = IPluginContainer::create(*g_logger);
     // In this test we have to manually pad output by 1 in D dimension.
-    auto out_dims = DimsNCHW(x_dims.d[1], x_dims.d[2], x_dims.d[3], x_dims.d[4]);
+    auto out_dims = Dims4(x_dims.d[1], x_dims.d[2], x_dims.d[3], x_dims.d[4]);
     out_dims.d[0] += 1;
     auto actual = runPlugin(1, {{"y", y_dims, y}}, x_dims,
                             [&]
@@ -833,8 +837,8 @@ TEST(Conv3DTransposePluginTests, Multiple)
 
     auto factory = IPluginContainer::create(*g_logger);
     // In this test we have to manually pad output by 1 in D dimension.
-    auto out_dims1 = DimsNCHW(8 + 1, 8, 9, 9); // REVIEW alexeyk: hardcoded for now.
-    auto out_dims2 = DimsNCHW(x_dims.d[1], x_dims.d[2], x_dims.d[3], x_dims.d[4]);
+    auto out_dims1 = Dims4(8 + 1, 8, 9, 9); // REVIEW alexeyk: hardcoded for now.
+    auto out_dims2 = Dims4(x_dims.d[1], x_dims.d[2], x_dims.d[3], x_dims.d[4]);
     out_dims2.d[0] += 1;
     auto actual = runPlugin(1, {{"y", y_dims, y}}, x_dims,
                             [&]
@@ -991,7 +995,7 @@ TEST(CorrCostVolumePluginTests, BasicFP16NC2HW2)
     // with no native FP16 support. Should be fixed in the future release of TRT.
     auto builder  = createInferBuilder(*g_logger);
     bool has_fp16 = builder->platformHasFastFp16();
-    builder->destroy();
+
     if (!has_fp16)
     {
         testing::internal::ColoredPrintf(testing::internal::COLOR_YELLOW,

@@ -20,21 +20,21 @@ class IPluginContainer;
 
 // NVSmall DNN: 1025x321 input, 96 max disparity.
 INetworkDefinition* createNVSmall1025x321Network(IBuilder& builder, IPluginContainer& plugin_factory,
-                                                 DimsCHW img_dims, const weight_map& weights, DataType data_type, ILogger& log);
+                                                 Dims3 img_dims, const weight_map& weights, DataType data_type, ILogger& log);
 
 // Tiny version of NVSmall DNN: 513x161 input, 48 max disparity.
 INetworkDefinition* createNVTiny513x161Network(IBuilder& builder, IPluginContainer& plugin_factory,
-                                               DimsCHW img_dims, const weight_map& weights, DataType data_type,
+                                               Dims3 img_dims, const weight_map& weights, DataType data_type,
                                                ILogger& log);
 
 // Baseline ResNet-18 DNN: 1025x321 input, 136 max disparity.
 INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginContainer& plugin_factory,
-                                                   DimsCHW img_dims, const weight_map& weights, DataType data_type,
+                                                   Dims3 img_dims, const weight_map& weights, DataType data_type,
                                                    ILogger& log);
 
 // ResNet18_2D DNN: 513x256 input, 96 max disparity.
 INetworkDefinition* createResNet18_2D_513x257Network(IBuilder& builder, IPluginContainer& plugin_factory,
-                                                     DimsCHW img_dims, const weight_map& weights, DataType data_type, ILogger& log);
+                                                     Dims3 img_dims, const weight_map& weights, DataType data_type, ILogger& log);
 }}
 
 #endif

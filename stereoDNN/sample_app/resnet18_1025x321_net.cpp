@@ -19,10 +19,10 @@ using namespace nvinfer1;
 using weight_map = std::unordered_map<std::string, Weights>;
 
 INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginContainer& plugin_factory,
-                                     DimsCHW img_dims, const weight_map& weights, DataType data_type,
+                                     Dims3 img_dims, const weight_map& weights, DataType data_type,
                                      ILogger& log)
 {
-    INetworkDefinition* network = builder.createNetwork();
+    INetworkDefinition* network = builder.createNetworkV2(0);
     assert(network != nullptr);
     // Input tensor.
     auto left = network->addInput("left", DataType::kFLOAT, img_dims);
@@ -45,12 +45,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_scale->setName("right_scale");
 
     // left_conv1 convolution op.
-    auto left_conv1 = network->addConvolution(*left_scale->getOutput(0), 32, DimsHW {5, 5},
+    auto left_conv1 = network->addConvolutionNd(*left_scale->getOutput(0), 32, DimsHW {5, 5},
                                        weights.at("left_conv1_k"), weights.at("left_conv1_b"));
     assert(left_conv1 != nullptr);
     left_conv1->setName("left_conv1");
-    left_conv1->setStride( DimsHW {2, 2});
-    left_conv1->setPadding(DimsHW {2, 2});
+    left_conv1->setStrideNd( DimsHW {2, 2});
+    left_conv1->setPaddingNd(DimsHW {2, 2});
 
     // left_conv1_act ELU activation op.
     auto left_conv1_act = addElu(plugin_factory, *network, *left_conv1->getOutput(0), data_type, "left_conv1_act");
@@ -58,12 +58,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_conv1_act->setName("left_conv1_act");
 
     // right_conv1 convolution op.
-    auto right_conv1 = network->addConvolution(*right_scale->getOutput(0), 32, DimsHW {5, 5},
+    auto right_conv1 = network->addConvolutionNd(*right_scale->getOutput(0), 32, DimsHW {5, 5},
                                        weights.at("right_conv1_k"), weights.at("right_conv1_b"));
     assert(right_conv1 != nullptr);
     right_conv1->setName("right_conv1");
-    right_conv1->setStride( DimsHW {2, 2});
-    right_conv1->setPadding(DimsHW {2, 2});
+    right_conv1->setStrideNd( DimsHW {2, 2});
+    right_conv1->setPaddingNd(DimsHW {2, 2});
 
     // right_conv1_act ELU activation op.
     auto right_conv1_act = addElu(plugin_factory, *network, *right_conv1->getOutput(0), data_type, "right_conv1_act");
@@ -71,12 +71,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_conv1_act->setName("right_conv1_act");
 
     // left_resblock1_conv1 convolution op.
-    auto left_resblock1_conv1 = network->addConvolution(*left_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock1_conv1 = network->addConvolutionNd(*left_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock1_conv1_k"), weights.at("left_resblock1_conv1_b"));
     assert(left_resblock1_conv1 != nullptr);
     left_resblock1_conv1->setName("left_resblock1_conv1");
-    left_resblock1_conv1->setStride( DimsHW {1, 1});
-    left_resblock1_conv1->setPadding(DimsHW {1, 1});
+    left_resblock1_conv1->setStrideNd( DimsHW {1, 1});
+    left_resblock1_conv1->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock1_conv1_act ELU activation op.
     auto left_resblock1_conv1_act = addElu(plugin_factory, *network, *left_resblock1_conv1->getOutput(0), data_type, "left_resblock1_conv1_act");
@@ -84,12 +84,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock1_conv1_act->setName("left_resblock1_conv1_act");
 
     // left_resblock1_conv2 convolution op.
-    auto left_resblock1_conv2 = network->addConvolution(*left_resblock1_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock1_conv2 = network->addConvolutionNd(*left_resblock1_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock1_conv2_k"), weights.at("left_resblock1_conv2_b"));
     assert(left_resblock1_conv2 != nullptr);
     left_resblock1_conv2->setName("left_resblock1_conv2");
-    left_resblock1_conv2->setStride( DimsHW {1, 1});
-    left_resblock1_conv2->setPadding(DimsHW {1, 1});
+    left_resblock1_conv2->setStrideNd( DimsHW {1, 1});
+    left_resblock1_conv2->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock1_conv2_add tensor add op.
     auto left_resblock1_conv2_add = network->addElementWise(*(left_resblock1_conv2->getOutput(0)), *(left_conv1_act->getOutput(0)), ElementWiseOperation::kSUM);
@@ -102,12 +102,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock1_conv2_add_act->setName("left_resblock1_conv2_add_act");
 
     // right_resblock1_conv1 convolution op.
-    auto right_resblock1_conv1 = network->addConvolution(*right_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock1_conv1 = network->addConvolutionNd(*right_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock1_conv1_k"), weights.at("right_resblock1_conv1_b"));
     assert(right_resblock1_conv1 != nullptr);
     right_resblock1_conv1->setName("right_resblock1_conv1");
-    right_resblock1_conv1->setStride( DimsHW {1, 1});
-    right_resblock1_conv1->setPadding(DimsHW {1, 1});
+    right_resblock1_conv1->setStrideNd( DimsHW {1, 1});
+    right_resblock1_conv1->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock1_conv1_act ELU activation op.
     auto right_resblock1_conv1_act = addElu(plugin_factory, *network, *right_resblock1_conv1->getOutput(0), data_type, "right_resblock1_conv1_act");
@@ -115,12 +115,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock1_conv1_act->setName("right_resblock1_conv1_act");
 
     // right_resblock1_conv2 convolution op.
-    auto right_resblock1_conv2 = network->addConvolution(*right_resblock1_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock1_conv2 = network->addConvolutionNd(*right_resblock1_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock1_conv2_k"), weights.at("right_resblock1_conv2_b"));
     assert(right_resblock1_conv2 != nullptr);
     right_resblock1_conv2->setName("right_resblock1_conv2");
-    right_resblock1_conv2->setStride( DimsHW {1, 1});
-    right_resblock1_conv2->setPadding(DimsHW {1, 1});
+    right_resblock1_conv2->setStrideNd( DimsHW {1, 1});
+    right_resblock1_conv2->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock1_conv2_add tensor add op.
     auto right_resblock1_conv2_add = network->addElementWise(*(right_resblock1_conv2->getOutput(0)), *(right_conv1_act->getOutput(0)),
@@ -134,12 +134,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock1_conv2_add_act->setName("right_resblock1_conv2_add_act");
 
     // left_resblock2_conv1 convolution op.
-    auto left_resblock2_conv1 = network->addConvolution(*left_resblock1_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock2_conv1 = network->addConvolutionNd(*left_resblock1_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock2_conv1_k"), weights.at("left_resblock2_conv1_b"));
     assert(left_resblock2_conv1 != nullptr);
     left_resblock2_conv1->setName("left_resblock2_conv1");
-    left_resblock2_conv1->setStride( DimsHW {1, 1});
-    left_resblock2_conv1->setPadding(DimsHW {1, 1});
+    left_resblock2_conv1->setStrideNd( DimsHW {1, 1});
+    left_resblock2_conv1->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock2_conv1_act ELU activation op.
     auto left_resblock2_conv1_act = addElu(plugin_factory, *network, *left_resblock2_conv1->getOutput(0), data_type, "left_resblock2_conv1_act");
@@ -147,12 +147,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock2_conv1_act->setName("left_resblock2_conv1_act");
 
     // left_resblock2_conv2 convolution op.
-    auto left_resblock2_conv2 = network->addConvolution(*left_resblock2_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock2_conv2 = network->addConvolutionNd(*left_resblock2_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock2_conv2_k"), weights.at("left_resblock2_conv2_b"));
     assert(left_resblock2_conv2 != nullptr);
     left_resblock2_conv2->setName("left_resblock2_conv2");
-    left_resblock2_conv2->setStride( DimsHW {1, 1});
-    left_resblock2_conv2->setPadding(DimsHW {1, 1});
+    left_resblock2_conv2->setStrideNd( DimsHW {1, 1});
+    left_resblock2_conv2->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock2_conv2_add tensor add op.
     auto left_resblock2_conv2_add = network->addElementWise(*(left_resblock2_conv2->getOutput(0)), *(left_resblock1_conv2_add_act->getOutput(0)),
@@ -166,12 +166,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock2_conv2_add_act->setName("left_resblock2_conv2_add_act");
 
     // right_resblock2_conv1 convolution op.
-    auto right_resblock2_conv1 = network->addConvolution(*right_resblock1_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock2_conv1 = network->addConvolutionNd(*right_resblock1_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock2_conv1_k"), weights.at("right_resblock2_conv1_b"));
     assert(right_resblock2_conv1 != nullptr);
     right_resblock2_conv1->setName("right_resblock2_conv1");
-    right_resblock2_conv1->setStride( DimsHW {1, 1});
-    right_resblock2_conv1->setPadding(DimsHW {1, 1});
+    right_resblock2_conv1->setStrideNd( DimsHW {1, 1});
+    right_resblock2_conv1->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock2_conv1_act ELU activation op.
     auto right_resblock2_conv1_act = addElu(plugin_factory, *network, *right_resblock2_conv1->getOutput(0), data_type, "right_resblock2_conv1_act");
@@ -179,12 +179,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock2_conv1_act->setName("right_resblock2_conv1_act");
 
     // right_resblock2_conv2 convolution op.
-    auto right_resblock2_conv2 = network->addConvolution(*right_resblock2_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock2_conv2 = network->addConvolutionNd(*right_resblock2_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock2_conv2_k"), weights.at("right_resblock2_conv2_b"));
     assert(right_resblock2_conv2 != nullptr);
     right_resblock2_conv2->setName("right_resblock2_conv2");
-    right_resblock2_conv2->setStride( DimsHW {1, 1});
-    right_resblock2_conv2->setPadding(DimsHW {1, 1});
+    right_resblock2_conv2->setStrideNd( DimsHW {1, 1});
+    right_resblock2_conv2->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock2_conv2_add tensor add op.
     auto right_resblock2_conv2_add = network->addElementWise(*(right_resblock2_conv2->getOutput(0)), *(right_resblock1_conv2_add_act->getOutput(0)),
@@ -198,12 +198,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock2_conv2_add_act->setName("right_resblock2_conv2_add_act");
 
     // left_resblock3_conv1 convolution op.
-    auto left_resblock3_conv1 = network->addConvolution(*left_resblock2_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock3_conv1 = network->addConvolutionNd(*left_resblock2_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock3_conv1_k"), weights.at("left_resblock3_conv1_b"));
     assert(left_resblock3_conv1 != nullptr);
     left_resblock3_conv1->setName("left_resblock3_conv1");
-    left_resblock3_conv1->setStride( DimsHW {1, 1});
-    left_resblock3_conv1->setPadding(DimsHW {1, 1});
+    left_resblock3_conv1->setStrideNd( DimsHW {1, 1});
+    left_resblock3_conv1->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock3_conv1_act ELU activation op.
     auto left_resblock3_conv1_act = addElu(plugin_factory, *network, *left_resblock3_conv1->getOutput(0), data_type, "left_resblock3_conv1_act");
@@ -211,12 +211,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock3_conv1_act->setName("left_resblock3_conv1_act");
 
     // left_resblock3_conv2 convolution op.
-    auto left_resblock3_conv2 = network->addConvolution(*left_resblock3_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock3_conv2 = network->addConvolutionNd(*left_resblock3_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock3_conv2_k"), weights.at("left_resblock3_conv2_b"));
     assert(left_resblock3_conv2 != nullptr);
     left_resblock3_conv2->setName("left_resblock3_conv2");
-    left_resblock3_conv2->setStride( DimsHW {1, 1});
-    left_resblock3_conv2->setPadding(DimsHW {1, 1});
+    left_resblock3_conv2->setStrideNd( DimsHW {1, 1});
+    left_resblock3_conv2->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock3_conv2_add tensor add op.
     auto left_resblock3_conv2_add = network->addElementWise(*(left_resblock3_conv2->getOutput(0)), *(left_resblock2_conv2_add_act->getOutput(0)),
@@ -230,12 +230,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock3_conv2_add_act->setName("left_resblock3_conv2_add_act");
 
     // right_resblock3_conv1 convolution op.
-    auto right_resblock3_conv1 = network->addConvolution(*right_resblock2_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock3_conv1 = network->addConvolutionNd(*right_resblock2_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock3_conv1_k"), weights.at("right_resblock3_conv1_b"));
     assert(right_resblock3_conv1 != nullptr);
     right_resblock3_conv1->setName("right_resblock3_conv1");
-    right_resblock3_conv1->setStride( DimsHW {1, 1});
-    right_resblock3_conv1->setPadding(DimsHW {1, 1});
+    right_resblock3_conv1->setStrideNd( DimsHW {1, 1});
+    right_resblock3_conv1->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock3_conv1_act ELU activation op.
     auto right_resblock3_conv1_act = addElu(plugin_factory, *network, *right_resblock3_conv1->getOutput(0), data_type, "right_resblock3_conv1_act");
@@ -243,12 +243,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock3_conv1_act->setName("right_resblock3_conv1_act");
 
     // right_resblock3_conv2 convolution op.
-    auto right_resblock3_conv2 = network->addConvolution(*right_resblock3_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock3_conv2 = network->addConvolutionNd(*right_resblock3_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock3_conv2_k"), weights.at("right_resblock3_conv2_b"));
     assert(right_resblock3_conv2 != nullptr);
     right_resblock3_conv2->setName("right_resblock3_conv2");
-    right_resblock3_conv2->setStride( DimsHW {1, 1});
-    right_resblock3_conv2->setPadding(DimsHW {1, 1});
+    right_resblock3_conv2->setStrideNd( DimsHW {1, 1});
+    right_resblock3_conv2->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock3_conv2_add tensor add op.
     auto right_resblock3_conv2_add = network->addElementWise(*(right_resblock3_conv2->getOutput(0)), *(right_resblock2_conv2_add_act->getOutput(0)),
@@ -262,12 +262,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock3_conv2_add_act->setName("right_resblock3_conv2_add_act");
 
     // left_resblock4_conv1 convolution op.
-    auto left_resblock4_conv1 = network->addConvolution(*left_resblock3_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock4_conv1 = network->addConvolutionNd(*left_resblock3_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock4_conv1_k"), weights.at("left_resblock4_conv1_b"));
     assert(left_resblock4_conv1 != nullptr);
     left_resblock4_conv1->setName("left_resblock4_conv1");
-    left_resblock4_conv1->setStride( DimsHW {1, 1});
-    left_resblock4_conv1->setPadding(DimsHW {1, 1});
+    left_resblock4_conv1->setStrideNd( DimsHW {1, 1});
+    left_resblock4_conv1->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock4_conv1_act ELU activation op.
     auto left_resblock4_conv1_act = addElu(plugin_factory, *network, *left_resblock4_conv1->getOutput(0), data_type, "left_resblock4_conv1_act");
@@ -275,12 +275,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock4_conv1_act->setName("left_resblock4_conv1_act");
 
     // left_resblock4_conv2 convolution op.
-    auto left_resblock4_conv2 = network->addConvolution(*left_resblock4_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock4_conv2 = network->addConvolutionNd(*left_resblock4_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock4_conv2_k"), weights.at("left_resblock4_conv2_b"));
     assert(left_resblock4_conv2 != nullptr);
     left_resblock4_conv2->setName("left_resblock4_conv2");
-    left_resblock4_conv2->setStride( DimsHW {1, 1});
-    left_resblock4_conv2->setPadding(DimsHW {1, 1});
+    left_resblock4_conv2->setStrideNd( DimsHW {1, 1});
+    left_resblock4_conv2->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock4_conv2_add tensor add op.
     auto left_resblock4_conv2_add = network->addElementWise(*(left_resblock4_conv2->getOutput(0)), *(left_resblock3_conv2_add_act->getOutput(0)),
@@ -294,12 +294,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock4_conv2_add_act->setName("left_resblock4_conv2_add_act");
 
     // right_resblock4_conv1 convolution op.
-    auto right_resblock4_conv1 = network->addConvolution(*right_resblock3_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock4_conv1 = network->addConvolutionNd(*right_resblock3_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock4_conv1_k"), weights.at("right_resblock4_conv1_b"));
     assert(right_resblock4_conv1 != nullptr);
     right_resblock4_conv1->setName("right_resblock4_conv1");
-    right_resblock4_conv1->setStride( DimsHW {1, 1});
-    right_resblock4_conv1->setPadding(DimsHW {1, 1});
+    right_resblock4_conv1->setStrideNd( DimsHW {1, 1});
+    right_resblock4_conv1->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock4_conv1_act ELU activation op.
     auto right_resblock4_conv1_act = addElu(plugin_factory, *network, *right_resblock4_conv1->getOutput(0), data_type, "right_resblock4_conv1_act");
@@ -307,12 +307,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock4_conv1_act->setName("right_resblock4_conv1_act");
 
     // right_resblock4_conv2 convolution op.
-    auto right_resblock4_conv2 = network->addConvolution(*right_resblock4_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock4_conv2 = network->addConvolutionNd(*right_resblock4_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock4_conv2_k"), weights.at("right_resblock4_conv2_b"));
     assert(right_resblock4_conv2 != nullptr);
     right_resblock4_conv2->setName("right_resblock4_conv2");
-    right_resblock4_conv2->setStride( DimsHW {1, 1});
-    right_resblock4_conv2->setPadding(DimsHW {1, 1});
+    right_resblock4_conv2->setStrideNd( DimsHW {1, 1});
+    right_resblock4_conv2->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock4_conv2_add tensor add op.
     auto right_resblock4_conv2_add = network->addElementWise(*(right_resblock4_conv2->getOutput(0)), *(right_resblock3_conv2_add_act->getOutput(0)),
@@ -326,12 +326,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock4_conv2_add_act->setName("right_resblock4_conv2_add_act");
 
     // left_resblock5_conv1 convolution op.
-    auto left_resblock5_conv1 = network->addConvolution(*left_resblock4_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock5_conv1 = network->addConvolutionNd(*left_resblock4_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock5_conv1_k"), weights.at("left_resblock5_conv1_b"));
     assert(left_resblock5_conv1 != nullptr);
     left_resblock5_conv1->setName("left_resblock5_conv1");
-    left_resblock5_conv1->setStride( DimsHW {1, 1});
-    left_resblock5_conv1->setPadding(DimsHW {1, 1});
+    left_resblock5_conv1->setStrideNd( DimsHW {1, 1});
+    left_resblock5_conv1->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock5_conv1_act ELU activation op.
     auto left_resblock5_conv1_act = addElu(plugin_factory, *network, *left_resblock5_conv1->getOutput(0), data_type, "left_resblock5_conv1_act");
@@ -339,12 +339,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock5_conv1_act->setName("left_resblock5_conv1_act");
 
     // left_resblock5_conv2 convolution op.
-    auto left_resblock5_conv2 = network->addConvolution(*left_resblock5_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock5_conv2 = network->addConvolutionNd(*left_resblock5_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock5_conv2_k"), weights.at("left_resblock5_conv2_b"));
     assert(left_resblock5_conv2 != nullptr);
     left_resblock5_conv2->setName("left_resblock5_conv2");
-    left_resblock5_conv2->setStride( DimsHW {1, 1});
-    left_resblock5_conv2->setPadding(DimsHW {1, 1});
+    left_resblock5_conv2->setStrideNd( DimsHW {1, 1});
+    left_resblock5_conv2->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock5_conv2_add tensor add op.
     auto left_resblock5_conv2_add = network->addElementWise(*(left_resblock5_conv2->getOutput(0)), *(left_resblock4_conv2_add_act->getOutput(0)),
@@ -358,12 +358,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock5_conv2_add_act->setName("left_resblock5_conv2_add_act");
 
     // right_resblock5_conv1 convolution op.
-    auto right_resblock5_conv1 = network->addConvolution(*right_resblock4_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock5_conv1 = network->addConvolutionNd(*right_resblock4_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock5_conv1_k"), weights.at("right_resblock5_conv1_b"));
     assert(right_resblock5_conv1 != nullptr);
     right_resblock5_conv1->setName("right_resblock5_conv1");
-    right_resblock5_conv1->setStride( DimsHW {1, 1});
-    right_resblock5_conv1->setPadding(DimsHW {1, 1});
+    right_resblock5_conv1->setStrideNd( DimsHW {1, 1});
+    right_resblock5_conv1->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock5_conv1_act ELU activation op.
     auto right_resblock5_conv1_act = addElu(plugin_factory, *network, *right_resblock5_conv1->getOutput(0), data_type, "right_resblock5_conv1_act");
@@ -371,12 +371,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock5_conv1_act->setName("right_resblock5_conv1_act");
 
     // right_resblock5_conv2 convolution op.
-    auto right_resblock5_conv2 = network->addConvolution(*right_resblock5_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock5_conv2 = network->addConvolutionNd(*right_resblock5_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock5_conv2_k"), weights.at("right_resblock5_conv2_b"));
     assert(right_resblock5_conv2 != nullptr);
     right_resblock5_conv2->setName("right_resblock5_conv2");
-    right_resblock5_conv2->setStride( DimsHW {1, 1});
-    right_resblock5_conv2->setPadding(DimsHW {1, 1});
+    right_resblock5_conv2->setStrideNd( DimsHW {1, 1});
+    right_resblock5_conv2->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock5_conv2_add tensor add op.
     auto right_resblock5_conv2_add = network->addElementWise(*(right_resblock5_conv2->getOutput(0)), *(right_resblock4_conv2_add_act->getOutput(0)),
@@ -390,12 +390,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock5_conv2_add_act->setName("right_resblock5_conv2_add_act");
 
     // left_resblock6_conv1 convolution op.
-    auto left_resblock6_conv1 = network->addConvolution(*left_resblock5_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock6_conv1 = network->addConvolutionNd(*left_resblock5_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock6_conv1_k"), weights.at("left_resblock6_conv1_b"));
     assert(left_resblock6_conv1 != nullptr);
     left_resblock6_conv1->setName("left_resblock6_conv1");
-    left_resblock6_conv1->setStride( DimsHW {1, 1});
-    left_resblock6_conv1->setPadding(DimsHW {1, 1});
+    left_resblock6_conv1->setStrideNd( DimsHW {1, 1});
+    left_resblock6_conv1->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock6_conv1_act ELU activation op.
     auto left_resblock6_conv1_act = addElu(plugin_factory, *network, *left_resblock6_conv1->getOutput(0), data_type, "left_resblock6_conv1_act");
@@ -403,12 +403,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock6_conv1_act->setName("left_resblock6_conv1_act");
 
     // left_resblock6_conv2 convolution op.
-    auto left_resblock6_conv2 = network->addConvolution(*left_resblock6_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock6_conv2 = network->addConvolutionNd(*left_resblock6_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock6_conv2_k"), weights.at("left_resblock6_conv2_b"));
     assert(left_resblock6_conv2 != nullptr);
     left_resblock6_conv2->setName("left_resblock6_conv2");
-    left_resblock6_conv2->setStride( DimsHW {1, 1});
-    left_resblock6_conv2->setPadding(DimsHW {1, 1});
+    left_resblock6_conv2->setStrideNd( DimsHW {1, 1});
+    left_resblock6_conv2->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock6_conv2_add tensor add op.
     auto left_resblock6_conv2_add = network->addElementWise(*(left_resblock6_conv2->getOutput(0)), *(left_resblock5_conv2_add_act->getOutput(0)),
@@ -422,12 +422,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock6_conv2_add_act->setName("left_resblock6_conv2_add_act");
 
     // right_resblock6_conv1 convolution op.
-    auto right_resblock6_conv1 = network->addConvolution(*right_resblock5_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock6_conv1 = network->addConvolutionNd(*right_resblock5_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock6_conv1_k"), weights.at("right_resblock6_conv1_b"));
     assert(right_resblock6_conv1 != nullptr);
     right_resblock6_conv1->setName("right_resblock6_conv1");
-    right_resblock6_conv1->setStride( DimsHW {1, 1});
-    right_resblock6_conv1->setPadding(DimsHW {1, 1});
+    right_resblock6_conv1->setStrideNd( DimsHW {1, 1});
+    right_resblock6_conv1->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock6_conv1_act ELU activation op.
     auto right_resblock6_conv1_act = addElu(plugin_factory, *network, *right_resblock6_conv1->getOutput(0), data_type, "right_resblock6_conv1_act");
@@ -435,12 +435,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock6_conv1_act->setName("right_resblock6_conv1_act");
 
     // right_resblock6_conv2 convolution op.
-    auto right_resblock6_conv2 = network->addConvolution(*right_resblock6_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock6_conv2 = network->addConvolutionNd(*right_resblock6_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock6_conv2_k"), weights.at("right_resblock6_conv2_b"));
     assert(right_resblock6_conv2 != nullptr);
     right_resblock6_conv2->setName("right_resblock6_conv2");
-    right_resblock6_conv2->setStride( DimsHW {1, 1});
-    right_resblock6_conv2->setPadding(DimsHW {1, 1});
+    right_resblock6_conv2->setStrideNd( DimsHW {1, 1});
+    right_resblock6_conv2->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock6_conv2_add tensor add op.
     auto right_resblock6_conv2_add = network->addElementWise(*(right_resblock6_conv2->getOutput(0)), *(right_resblock5_conv2_add_act->getOutput(0)),
@@ -454,12 +454,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock6_conv2_add_act->setName("right_resblock6_conv2_add_act");
 
     // left_resblock7_conv1 convolution op.
-    auto left_resblock7_conv1 = network->addConvolution(*left_resblock6_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock7_conv1 = network->addConvolutionNd(*left_resblock6_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock7_conv1_k"), weights.at("left_resblock7_conv1_b"));
     assert(left_resblock7_conv1 != nullptr);
     left_resblock7_conv1->setName("left_resblock7_conv1");
-    left_resblock7_conv1->setStride( DimsHW {1, 1});
-    left_resblock7_conv1->setPadding(DimsHW {1, 1});
+    left_resblock7_conv1->setStrideNd( DimsHW {1, 1});
+    left_resblock7_conv1->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock7_conv1_act ELU activation op.
     auto left_resblock7_conv1_act = addElu(plugin_factory, *network, *left_resblock7_conv1->getOutput(0), data_type, "left_resblock7_conv1_act");
@@ -467,12 +467,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock7_conv1_act->setName("left_resblock7_conv1_act");
 
     // left_resblock7_conv2 convolution op.
-    auto left_resblock7_conv2 = network->addConvolution(*left_resblock7_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock7_conv2 = network->addConvolutionNd(*left_resblock7_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock7_conv2_k"), weights.at("left_resblock7_conv2_b"));
     assert(left_resblock7_conv2 != nullptr);
     left_resblock7_conv2->setName("left_resblock7_conv2");
-    left_resblock7_conv2->setStride( DimsHW {1, 1});
-    left_resblock7_conv2->setPadding(DimsHW {1, 1});
+    left_resblock7_conv2->setStrideNd( DimsHW {1, 1});
+    left_resblock7_conv2->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock7_conv2_add tensor add op.
     auto left_resblock7_conv2_add = network->addElementWise(*(left_resblock7_conv2->getOutput(0)), *(left_resblock6_conv2_add_act->getOutput(0)),
@@ -486,12 +486,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock7_conv2_add_act->setName("left_resblock7_conv2_add_act");
 
     // right_resblock7_conv1 convolution op.
-    auto right_resblock7_conv1 = network->addConvolution(*right_resblock6_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock7_conv1 = network->addConvolutionNd(*right_resblock6_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock7_conv1_k"), weights.at("right_resblock7_conv1_b"));
     assert(right_resblock7_conv1 != nullptr);
     right_resblock7_conv1->setName("right_resblock7_conv1");
-    right_resblock7_conv1->setStride( DimsHW {1, 1});
-    right_resblock7_conv1->setPadding(DimsHW {1, 1});
+    right_resblock7_conv1->setStrideNd( DimsHW {1, 1});
+    right_resblock7_conv1->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock7_conv1_act ELU activation op.
     auto right_resblock7_conv1_act = addElu(plugin_factory, *network, *right_resblock7_conv1->getOutput(0), data_type, "right_resblock7_conv1_act");
@@ -499,12 +499,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock7_conv1_act->setName("right_resblock7_conv1_act");
 
     // right_resblock7_conv2 convolution op.
-    auto right_resblock7_conv2 = network->addConvolution(*right_resblock7_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock7_conv2 = network->addConvolutionNd(*right_resblock7_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock7_conv2_k"), weights.at("right_resblock7_conv2_b"));
     assert(right_resblock7_conv2 != nullptr);
     right_resblock7_conv2->setName("right_resblock7_conv2");
-    right_resblock7_conv2->setStride( DimsHW {1, 1});
-    right_resblock7_conv2->setPadding(DimsHW {1, 1});
+    right_resblock7_conv2->setStrideNd( DimsHW {1, 1});
+    right_resblock7_conv2->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock7_conv2_add tensor add op.
     auto right_resblock7_conv2_add = network->addElementWise(*(right_resblock7_conv2->getOutput(0)), *(right_resblock6_conv2_add_act->getOutput(0)),
@@ -518,12 +518,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock7_conv2_add_act->setName("right_resblock7_conv2_add_act");
 
     // left_resblock8_conv1 convolution op.
-    auto left_resblock8_conv1 = network->addConvolution(*left_resblock7_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock8_conv1 = network->addConvolutionNd(*left_resblock7_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock8_conv1_k"), weights.at("left_resblock8_conv1_b"));
     assert(left_resblock8_conv1 != nullptr);
     left_resblock8_conv1->setName("left_resblock8_conv1");
-    left_resblock8_conv1->setStride( DimsHW {1, 1});
-    left_resblock8_conv1->setPadding(DimsHW {1, 1});
+    left_resblock8_conv1->setStrideNd( DimsHW {1, 1});
+    left_resblock8_conv1->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock8_conv1_act ELU activation op.
     auto left_resblock8_conv1_act = addElu(plugin_factory, *network, *left_resblock8_conv1->getOutput(0), data_type, "left_resblock8_conv1_act");
@@ -531,12 +531,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock8_conv1_act->setName("left_resblock8_conv1_act");
 
     // left_resblock8_conv2 convolution op.
-    auto left_resblock8_conv2 = network->addConvolution(*left_resblock8_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_resblock8_conv2 = network->addConvolutionNd(*left_resblock8_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_resblock8_conv2_k"), weights.at("left_resblock8_conv2_b"));
     assert(left_resblock8_conv2 != nullptr);
     left_resblock8_conv2->setName("left_resblock8_conv2");
-    left_resblock8_conv2->setStride( DimsHW {1, 1});
-    left_resblock8_conv2->setPadding(DimsHW {1, 1});
+    left_resblock8_conv2->setStrideNd( DimsHW {1, 1});
+    left_resblock8_conv2->setPaddingNd(DimsHW {1, 1});
 
     // left_resblock8_conv2_add tensor add op.
     auto left_resblock8_conv2_add = network->addElementWise(*(left_resblock8_conv2->getOutput(0)), *(left_resblock7_conv2_add_act->getOutput(0)),
@@ -550,12 +550,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     left_resblock8_conv2_add_act->setName("left_resblock8_conv2_add_act");
 
     // right_resblock8_conv1 convolution op.
-    auto right_resblock8_conv1 = network->addConvolution(*right_resblock7_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock8_conv1 = network->addConvolutionNd(*right_resblock7_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock8_conv1_k"), weights.at("right_resblock8_conv1_b"));
     assert(right_resblock8_conv1 != nullptr);
     right_resblock8_conv1->setName("right_resblock8_conv1");
-    right_resblock8_conv1->setStride( DimsHW {1, 1});
-    right_resblock8_conv1->setPadding(DimsHW {1, 1});
+    right_resblock8_conv1->setStrideNd( DimsHW {1, 1});
+    right_resblock8_conv1->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock8_conv1_act ELU activation op.
     auto right_resblock8_conv1_act = addElu(plugin_factory, *network, *right_resblock8_conv1->getOutput(0), data_type, "right_resblock8_conv1_act");
@@ -563,12 +563,12 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock8_conv1_act->setName("right_resblock8_conv1_act");
 
     // right_resblock8_conv2 convolution op.
-    auto right_resblock8_conv2 = network->addConvolution(*right_resblock8_conv1_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_resblock8_conv2 = network->addConvolutionNd(*right_resblock8_conv1_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_resblock8_conv2_k"), weights.at("right_resblock8_conv2_b"));
     assert(right_resblock8_conv2 != nullptr);
     right_resblock8_conv2->setName("right_resblock8_conv2");
-    right_resblock8_conv2->setStride( DimsHW {1, 1});
-    right_resblock8_conv2->setPadding(DimsHW {1, 1});
+    right_resblock8_conv2->setStrideNd( DimsHW {1, 1});
+    right_resblock8_conv2->setPaddingNd(DimsHW {1, 1});
 
     // right_resblock8_conv2_add tensor add op.
     auto right_resblock8_conv2_add = network->addElementWise(*(right_resblock8_conv2->getOutput(0)), *(right_resblock7_conv2_add_act->getOutput(0)),
@@ -582,20 +582,20 @@ INetworkDefinition* createResNet18_1025x321Network(IBuilder& builder, IPluginCon
     right_resblock8_conv2_add_act->setName("right_resblock8_conv2_add_act");
 
     // left_encoder2D_out convolution op.
-    auto left_encoder2D_out = network->addConvolution(*left_resblock8_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto left_encoder2D_out = network->addConvolutionNd(*left_resblock8_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("left_encoder2D_out_k"), weights.at("left_encoder2D_out_b"));
     assert(left_encoder2D_out != nullptr);
     left_encoder2D_out->setName("left_encoder2D_out");
-    left_encoder2D_out->setStride( DimsHW {1, 1});
-    left_encoder2D_out->setPadding(DimsHW {1, 1});
+    left_encoder2D_out->setStrideNd( DimsHW {1, 1});
+    left_encoder2D_out->setPaddingNd(DimsHW {1, 1});
 
     // right_encoder2D_out convolution op.
-    auto right_encoder2D_out = network->addConvolution(*right_resblock8_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
+    auto right_encoder2D_out = network->addConvolutionNd(*right_resblock8_conv2_add_act->getOutput(0), 32, DimsHW {3, 3},
                                        weights.at("right_encoder2D_out_k"), weights.at("right_encoder2D_out_b"));
     assert(right_encoder2D_out != nullptr);
     right_encoder2D_out->setName("right_encoder2D_out");
-    right_encoder2D_out->setStride( DimsHW {1, 1});
-    right_encoder2D_out->setPadding(DimsHW {1, 1});
+    right_encoder2D_out->setStrideNd( DimsHW {1, 1});
+    right_encoder2D_out->setPaddingNd(DimsHW {1, 1});
 
     // cost_vol cost volume op.
     auto cost_vol = addCostVolume(plugin_factory, *network, *left_encoder2D_out->getOutput(0), *right_encoder2D_out->getOutput(0),

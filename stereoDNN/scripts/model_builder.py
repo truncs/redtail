@@ -14,7 +14,9 @@ import warnings
 # Ignore 'FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated' warning.
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning, module='h5py')
-    import tensorflow as tf
+    import tensorflow.compat.v1 as tf
+    tf.disable_v2_behavior()
+
 
 import tensorrt_model_builder
 import model_nvsmall

@@ -16,7 +16,7 @@ using namespace nvinfer1;
 // For more information on how 3D convolution is implemented, see
 // comments in conv_utils.h
 // -----------------------------------------------------------------
-class Conv3DPlugin: public IPlugin
+class Conv3DPlugin: public IPluginV2
 {
 public:
     Conv3DPlugin(Conv3DType conv_type, Dims kernel_dims,
@@ -66,18 +66,18 @@ public:
 
     Conv3DPlugin(Conv3DPlugin&&) = delete;
 
-    int getNbOutputs() const override
+    int getNbOutputs() const noexcept override 
     {
         return 1;
     }
 
-    Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) override
+    Dims getOutputDimensions(int index, Dims const* inputs, int nbInputDims) noexcept override
     {
         assert(index       == 0);
         assert(nbInputDims == 1);
         assert(inputs[0].nbDims == 4);
 
-        x_dims_ = DimsNCHW(inputs[0].d[0], inputs[0].d[1], inputs[0].d[2], inputs[0].d[3]);
+        x_dims_ = Dims4(inputs[0].d[0], inputs[0].d[1], inputs[0].d[2], inputs[0].d[3]);
 
         createDescriptors();
         // Can use batch_size == 1 to set tensor descriptors initially.
@@ -89,7 +89,7 @@ public:
         // Compute output dims.
         auto y_d = ConvUtils::getConv3DOutputDims(c_desc_, x_desc_, w_desc_, log_);
         // Remove batch index dim.
-        y_dims_  = DimsNCHW(y_d.d[1], y_d.d[2], y_d.d[3], y_d.d[4]);
+        y_dims_  = Dims4(y_d.d[1], y_d.d[2], y_d.d[3], y_d.d[4]);
         // Output tensor is always in cuDNN format.
         ConvUtils::setConv3DTensorDescriptor(Conv3DType::kCuDnn, y_dims_, 1, weights_type_, y_desc_, log_);
         // Set bias descriptor.
@@ -99,7 +99,8 @@ public:
         return y_dims_;
     }
 
-    void configure(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs, int maxBatchSize) override
+    void configureWithFormat(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs,
+                             DataType type, PluginFormat format, int maxBatchSize) noexcept override
     {
         assert(isValid());
         assert(nbInputs  == 1);
@@ -135,13 +136,13 @@ public:
         log_.log(ILogger::Severity::kINFO, (name_ + ": OutDims : " + DimsUtils::toString(y_dims_)).c_str());
     }
 
-    int initialize() override
+    int initialize() noexcept override
     {
         assert(isValid());
         return 0;
     }
 
-    void terminate() override
+    void terminate() noexcept override
     {
         assert(isValid());
 
@@ -176,7 +177,7 @@ public:
         assert(!isValid());
     }
 
-    size_t getWorkspaceSize(int maxBatchSize) const
+    size_t getWorkspaceSize(int maxBatchSize) const noexcept override
     {
         assert(isValid());
         assert(max_batch_size_ == maxBatchSize);
@@ -184,7 +185,7 @@ public:
         return workspace_bytes_;
     }
 
-    int enqueue(int batchSize, const void*const * inputs, void** outputs, void* workspace, cudaStream_t stream) override
+    int enqueue(int batchSize, void const *const *inputs, void *const *outputs, void* workspace, cudaStream_t stream) noexcept override
     {
         assert(isValid());
         // REVIEW alexeyk: for now assuming batch size always equals max batch size.
@@ -215,13 +216,13 @@ public:
         return status == CUDNN_STATUS_SUCCESS ? 0 : -1;
     }
 
-    size_t getSerializationSize() override
+    size_t getSerializationSize() const noexcept override
     {
         assert(isValid());
         return 0;
     }
 
-    void serialize(void* buffer) override
+    void serialize(void* buffer) const noexcept override
     {
         assert(isValid());
         // REVIEW alexeyk: implement.
@@ -333,15 +334,56 @@ private:
         log_.log(ILogger::Severity::kINFO, (name_ + ": <-- Conv3D layer tuning results.").c_str());
     }
 
+    const char* getPluginType() const noexcept override
+    {
+        return "Conv3d";
+    }
+
+    const char* getPluginVersion() const noexcept override
+    {
+        return "2";
+    }
+
+    bool supportsFormat(DataType type, PluginFormat format) const noexcept override
+    {
+        assert(type == DataType::kFLOAT);
+        assert(format == PluginFormat::kLINEAR);
+        return true;
+    }
+
+    void setPluginNamespace(const char* libNamespace) noexcept override
+    {
+        namespace_ = libNamespace;
+    }
+
+    const char* getPluginNamespace() const noexcept override
+    {
+        return namespace_.data();
+    }
+
+    IPluginV2* clone() const noexcept override
+    {
+        auto* plugin = new Conv3DPlugin(conv_type_, w_dims_,
+                                        stride_dims_, pad_start_dims_, pad_end_dims_,
+                                        kernel_weights_, bias_weights_,
+                                        log_, name_);
+        return plugin;
+    }
+
+    void destroy() noexcept override
+    {
+        delete this;
+    }
+
 private:
     Conv3DType      conv_type_;
     cudnnDataType_t data_type_;
     cudnnDataType_t weights_type_;
 
-    // Using DimsNCHW to represent 3D convos input/output is an ugly workaround
+    // Using Dims4 to represent 3D convos input/output is an ugly workaround
     // of TRT limitations which currently result in assert in the guts of TRT.
-    DimsNCHW x_dims_;
-    DimsNCHW y_dims_;
+    Dims4 x_dims_;
+    Dims4 y_dims_;
     Dims     w_dims_;
     Dims     stride_dims_;
     Dims     pad_start_dims_;
@@ -371,10 +413,11 @@ private:
 
     ILogger&    log_;
     std::string name_;
+    std::string namespace_;
 };
 
 // Factory method.
-IPlugin* PluginContainer::createConv3DPlugin(Conv3DType conv_type, Dims kernel_dims,
+IPluginV2* PluginContainer::createConv3DPlugin(Conv3DType conv_type, Dims kernel_dims,
                                              Dims stride_dims, Dims pad_start_dims, Dims pad_end_dims,
                                              Weights kernel_weights, Weights bias_weights,
                                              std::string name)

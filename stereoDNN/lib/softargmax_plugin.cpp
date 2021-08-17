@@ -14,7 +14,7 @@ using namespace nvinfer1;
 // -----------------------------------------------------------------
 // Soft argmax plugin.
 // -----------------------------------------------------------------
-class SoftargmaxPlugin: public IPluginExt
+class SoftargmaxPlugin: public IPluginV2
 {
 public:
     SoftargmaxPlugin(DataType data_type, SoftargmaxType sm_type, ILogger& log, std::string name):
@@ -48,17 +48,17 @@ public:
 
     SoftargmaxPlugin(SoftargmaxPlugin&&) = delete;
 
-    bool supportsFormat(DataType type, PluginFormat format) const override
+    bool supportsFormat(DataType type, PluginFormat format) const noexcept override
     {
-        return (type == data_type_) && (format == PluginFormat::kNCHW);
+        return (type == data_type_) && (format == PluginFormat::kLINEAR);
     }
 
-    int getNbOutputs() const override
+    int getNbOutputs() const noexcept override
     {
         return 1;
     }
 
-    Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) override
+    Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) noexcept override
     {
         assert(nbInputDims == 1);
         assert(inputs[0].nbDims == 3 || inputs[0].nbDims == 4);
@@ -71,13 +71,13 @@ public:
             in_dims_ = {3, {inputs[0].d[0], inputs[0].d[2], inputs[0].d[3]}};
         }
 
-        out_dims_ = DimsCHW(1, in_dims_.d[1], in_dims_.d[2]);
+        out_dims_ = Dims3(1, in_dims_.d[1], in_dims_.d[2]);
 
         return out_dims_;
     }
 
     void configureWithFormat(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs,
-                             DataType type, PluginFormat format, int maxBatchSize) override
+                             DataType type, PluginFormat format, int maxBatchSize) noexcept override
     {
         assert(nbInputs  == 1);
         assert(nbOutputs == 1);
@@ -99,7 +99,7 @@ public:
         assert(isValid());
     }
 
-    int initialize() override
+    int initialize() noexcept override
     {
         assert(isValid());
 
@@ -130,7 +130,7 @@ public:
         return 0;
     }
 
-    void terminate() override
+    void terminate() noexcept override
     {
         assert(isValid());
 
@@ -158,13 +158,13 @@ public:
         assert(!isValid());
     }
 
-    size_t getWorkspaceSize(int maxBatchSize) const
+    size_t getWorkspaceSize(int maxBatchSize) const noexcept override
     {
         // Need a copy of the input.
         return 2 * (DimsUtils::getTensorSize(in_dims_)) * maxBatchSize * sizeof(float);
     }
 
-    int enqueue(int batchSize, const void*const * inputs, void** outputs, void* workspace, cudaStream_t stream) override
+    int enqueue(int batchSize, void const *const *inputs, void *const *outputs, void* workspace, cudaStream_t stream) noexcept override
     {
         assert(isValid());
 
@@ -204,18 +204,50 @@ public:
         return (status == CUDNN_STATUS_SUCCESS && cu_status == cudaSuccess) ? 0 : -1;
     }
 
-    size_t getSerializationSize() override
+    size_t getSerializationSize() const noexcept override
     {
         return serialize().size();
     }
 
-    void serialize(void* buffer) override
+    void serialize(void* buffer) const noexcept override
     {
         assert(buffer != nullptr);
 
         auto data = serialize();
         std::memcpy(buffer, data.c_str(), data.size());
     }
+
+    const char* getPluginType() const noexcept override
+    {
+        return "SoftArgMax";
+    }
+
+    const char* getPluginVersion() const noexcept override
+    {
+        return "2";
+    }
+
+    void setPluginNamespace(const char* libNamespace) noexcept override
+    {
+        namespace_ = libNamespace;
+    }
+
+    const char* getPluginNamespace() const noexcept override
+    {
+        return namespace_.data();
+    }
+
+    IPluginV2* clone() const noexcept override
+    {
+        auto* plugin = new SoftargmaxPlugin(data_type_, sm_type_, log_, name_);
+        return plugin;
+    }
+
+    void destroy() noexcept override
+    {
+        delete this;
+    }
+
 
 private:
     bool isValid() const
@@ -270,7 +302,7 @@ private:
         last_batch_size_ = batch_size;
     }
 
-    std::string serialize()
+    std::string serialize() const
     {
         std::ostringstream ss(std::ios_base::binary);
         write_stream((int32_t)StereoDnnPluginFactory::PluginType::kSoftargmax, ss);
@@ -300,17 +332,18 @@ private:
     cudnnReduceTensorDescriptor_t sum_desc_ = nullptr;
 
     Dims    in_dims_;
-    DimsCHW out_dims_;
+    Dims3 out_dims_;
     int     last_batch_size_ = 0;
 
     float*  indices_d_ = nullptr;
 
     ILogger&    log_;
     std::string name_;
+    std::string namespace_;
 };
 
 // Factory method.
-IPlugin* PluginContainer::createSoftargmaxPlugin(DataType data_type, SoftargmaxType sm_type, std::string name)
+IPluginV2* PluginContainer::createSoftargmaxPlugin(DataType data_type, SoftargmaxType sm_type, std::string name)
 {
     std::lock_guard<std::mutex> lock(lock_);
     plugins_.push_back(new SoftargmaxPlugin(data_type, sm_type, log_, name));
@@ -318,7 +351,7 @@ IPlugin* PluginContainer::createSoftargmaxPlugin(DataType data_type, SoftargmaxT
 }
 
 // Deserialization method.
-IPlugin* PluginContainer::deserializeSoftargmaxPlugin(const char* name, const void* data, size_t size)
+IPluginV2* PluginContainer::deserializeSoftargmaxPlugin(const char* name, const void* data, size_t size)
 {
     std::lock_guard<std::mutex> lock(lock_);
     plugins_.push_back(new SoftargmaxPlugin(name, data, size, log_));

@@ -34,7 +34,6 @@ Dims DimsUtils::getStrides(Dims dims)
     for (int i = strides.nbDims - 2; i >= 0; i--)
     {
         strides.d[i]    = strides.d[i + 1] * dims.d[i + 1];
-        strides.type[i] = DimensionType::kSPATIAL;
     }
     return strides;
 }
@@ -86,12 +85,12 @@ std::string StrUtils::toString(PluginFormat format)
 {
     switch (format)
     {
-    case PluginFormat::kNCHW:
+    case PluginFormat::kLINEAR:
         return "NCHW";
-    case PluginFormat::kNC2HW2:
-        return "NC2HW2";
-    case PluginFormat::kNHWC8:
-        return "NHWC8";
+    case PluginFormat::kCHW2:
+        return "CHW2";
+    case PluginFormat::kHWC8:
+        return "HWC8";
     default:
         return "Unknown (" + std::to_string((int)format) + ")";
     }
@@ -124,16 +123,13 @@ std::unique_ptr<IPluginContainer> IPluginContainer::create(ILogger& log)
 // -----------------------------------------------------------------
 // Plugins helper functions.
 // -----------------------------------------------------------------
-IPluginLayer* addPlugin(INetworkDefinition& network, ITensor* const* inputs, int num_inputs, IPlugin* plugin)
+IPluginV2Layer* addPlugin(INetworkDefinition& network, ITensor* const* inputs, int num_inputs, IPluginV2* plugin)
 {
-    auto plugin_ext   = dynamic_cast<IPluginExt*>(plugin);
-    auto plugin_layer = plugin_ext != nullptr
-                        ? network.addPluginExt(inputs, num_inputs, *plugin_ext)
-                        : network.addPlugin(inputs, num_inputs, *plugin);
+    auto plugin_layer = network.addPluginV2(inputs, num_inputs, *plugin);
     return plugin_layer;
 }
 
-ILayer* addElu(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+IPluginV2Layer* addElu(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
                DataType data_type, const std::string& name)
 {
     // Create plugin.
@@ -146,7 +142,7 @@ ILayer* addElu(IPluginContainer& plugin_factory, INetworkDefinition& network, IT
     return layer;
 }
 
-ILayer* addCostVolume(IPluginContainer& plugin_factory, INetworkDefinition& network,
+IPluginV2Layer* addCostVolume(IPluginContainer& plugin_factory, INetworkDefinition& network,
                       ITensor& left_input, ITensor& right_input,
                       CostVolumeType cv_type, int max_disparity,
                       DataType data_type, const std::string& name)
@@ -161,7 +157,7 @@ ILayer* addCostVolume(IPluginContainer& plugin_factory, INetworkDefinition& netw
     return layer;
 }
 
-ILayer* addConv3D(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+IPluginV2Layer* addConv3D(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
                   Conv3DType conv_type, Dims kernel_dims, Dims stride_dims,
                   Dims pad_start_dims, Dims pad_end_dims,
                   Weights kernel_weights, Weights bias_weights,
@@ -180,7 +176,7 @@ ILayer* addConv3D(IPluginContainer& plugin_factory, INetworkDefinition& network,
     return layer;
 }
 
-ILayer* addConv3DTranspose(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+IPluginV2Layer* addConv3DTranspose(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
                            Conv3DType conv_type, Dims kernel_dims, Dims out_dims,
                            Dims stride_dims, Dims pad_start_dims, Dims pad_end_dims,
                            Weights kernel_weights, Weights bias_weights,
@@ -199,7 +195,7 @@ ILayer* addConv3DTranspose(IPluginContainer& plugin_factory, INetworkDefinition&
     return layer;
 }
 
-ILayer* addSlice(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+IPluginV2Layer* addSlice(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
                  Dims dims, Dims slice_start, Dims slice_end,
                  const std::string& name)
 {
@@ -213,7 +209,7 @@ ILayer* addSlice(IPluginContainer& plugin_factory, INetworkDefinition& network, 
     return layer;
 }
 
-ILayer* addTransform(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+IPluginV2Layer* addTransform(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
                      Permutation permutation,
                      const std::string& name)
 {
@@ -227,8 +223,8 @@ ILayer* addTransform(IPluginContainer& plugin_factory, INetworkDefinition& netwo
     return layer;
 }
 
-ILayer* addPad(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
-               DimsNCHW pad_start, DimsNCHW pad_end,
+IPluginV2Layer* addPad(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+               Dims4 pad_start, Dims4 pad_end,
                const std::string& name)
 {
     // Create plugin.
@@ -241,7 +237,7 @@ ILayer* addPad(IPluginContainer& plugin_factory, INetworkDefinition& network, IT
     return layer;
 }
 
-ILayer* addSoftargmax(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
+IPluginV2Layer* addSoftargmax(IPluginContainer& plugin_factory, INetworkDefinition& network, ITensor& input,
                       SoftargmaxType sm_type, DataType data_type, const std::string& name)
 {
     // Create plugin.
@@ -286,28 +282,29 @@ StereoDnnPluginFactory::StereoDnnPluginFactory(IPluginContainer& container):
 {
 }
 
-IPlugin* StereoDnnPluginFactory::createPlugin(const char* layerName, const void* serialData, size_t serialLength)
+IPluginV2* StereoDnnPluginFactory::createPlugin(const char* layerName, const Weights* weights, 
+                                                int32_t nbWeights, const char* libNamespace) noexcept
 {
-    assert(serialLength >= sizeof(int32_t));
-    size_t bytes_read = 0;
-    auto ptr          = (const uint8_t*)serialData;
-    auto plugin_type  = (PluginType)*(int32_t*)ptr;
-    bytes_read += sizeof(int32_t);
-    ptr += bytes_read;
+    // assert(serialLength >= sizeof(int32_t));
+    // size_t bytes_read = 0;
+    // auto ptr          = (const uint8_t*)serialData;
+    // auto plugin_type  = (PluginType)*(int32_t*)ptr;
+    // bytes_read += sizeof(int32_t);
+    // ptr += bytes_read;
 
-    IPlugin* plugin = nullptr;
-    switch (plugin_type)
-    {
-    case PluginType::kElu:
-            plugin = container_.deserializeEluPlugin(layerName, ptr, serialLength - bytes_read);
-        break;
-    case PluginType::kCostVolume:
-            plugin = container_.deserializeCostVolumePlugin(layerName, ptr, serialLength - bytes_read);
-        break;
-    case PluginType::kSoftargmax:
-            plugin = container_.deserializeSoftargmaxPlugin(layerName, ptr, serialLength - bytes_read);
-        break;
-    }
+    IPluginV2* plugin = nullptr;
+    // switch (plugin_type)
+    // {
+    // case PluginType::kElu:
+    //         plugin = container_.deserializeEluPlugin(layerName, ptr, serialLength - bytes_read);
+    //     break;
+    // case PluginType::kCostVolume:
+    //         plugin = container_.deserializeCostVolumePlugin(layerName, ptr, serialLength - bytes_read);
+    //     break;
+    // case PluginType::kSoftargmax:
+    //         plugin = container_.deserializeSoftargmaxPlugin(layerName, ptr, serialLength - bytes_read);
+    //     break;
+    // }
 
     return plugin;
 }

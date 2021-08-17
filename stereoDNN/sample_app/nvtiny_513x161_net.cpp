@@ -19,10 +19,10 @@ using namespace nvinfer1;
 using weight_map = std::unordered_map<std::string, Weights>;
 
 INetworkDefinition* createNVTiny513x161Network(IBuilder& builder, IPluginContainer& plugin_factory,
-                                     DimsCHW img_dims, const weight_map& weights, DataType data_type,
+                                     Dims3 img_dims, const weight_map& weights, DataType data_type,
                                      ILogger& log)
 {
-    INetworkDefinition* network = builder.createNetwork();
+    INetworkDefinition* network = builder.createNetworkV2(0);
     assert(network != nullptr);
     // Input tensor.
     auto left = network->addInput("left", DataType::kFLOAT, img_dims);
@@ -45,12 +45,12 @@ INetworkDefinition* createNVTiny513x161Network(IBuilder& builder, IPluginContain
     right_scale->setName("right_scale");
 
     // left_conv1 convolution op.
-    auto left_conv1 = network->addConvolution(*left_scale->getOutput(0), 32, DimsHW {5, 5},
+    auto left_conv1 = network->addConvolutionNd(*left_scale->getOutput(0), 32, DimsHW {5, 5},
                                        weights.at("left_conv1_k"), weights.at("left_conv1_b"));
     assert(left_conv1 != nullptr);
     left_conv1->setName("left_conv1");
-    left_conv1->setStride( DimsHW {2, 2});
-    left_conv1->setPadding(DimsHW {2, 2});
+    left_conv1->setStrideNd( DimsHW {2, 2});
+    left_conv1->setPaddingNd(DimsHW {2, 2});
 
     // left_conv1_act ELU activation op.
     auto left_conv1_act = addElu(plugin_factory, *network, *left_conv1->getOutput(0), data_type, "left_conv1_act");

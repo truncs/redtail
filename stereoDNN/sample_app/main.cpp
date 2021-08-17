@@ -26,10 +26,20 @@
 using namespace nvinfer1;
 using namespace redtail::tensorrt;
 
+
+struct InferDeleter
+{
+    template <typename T>
+    void operator()(T* obj) const
+    {
+        delete obj;
+    }
+};
+
 class Logger : public nvinfer1::ILogger
 {
 public:
-    void log(nvinfer1::ILogger::Severity severity, const char* msg) override
+    void log(nvinfer1::ILogger::Severity severity, const char* msg) noexcept override
     {
         // Skip info (verbose) messages.
         // if (severity == Severity::kINFO)
@@ -64,7 +74,7 @@ public:
     }
 
 protected:
-    void reportLayerTime(const char *layerName, float ms) override
+    void reportLayerTime(const char *layerName, float ms) noexcept override
     {
         auto record = std::find_if(profile_.begin(), profile_.end(), [&](const Record &r) { return r.first == layerName; });
         if (record == profile_.end())
@@ -89,7 +99,7 @@ std::vector<float> readImgFile(const std::string& filename, int w, int h)
     // 1. Resize.
     cv::resize(img, img, cv::Size(w, h), 0, 0,cv::INTER_AREA);
     // 2. Convert BGR -> RGB.
-    cv::cvtColor(img, img, CV_BGR2RGB);
+    cv::cvtColor(img, img, cv::COLOR_BGR2RGB);
     // 3. Convert HWC -> CHW.
     cv::Mat res = img.reshape(1, w * h).t();
     // 4. Scale.
@@ -201,22 +211,22 @@ int main(int argc, char** argv)
 
     // Note: the plugin_container object lifetime must be at least the same as the engine.
     auto plugin_container = IPluginContainer::create(gLogger);
-    ICudaEngine* engine   = nullptr;
+    std::unique_ptr<ICudaEngine> engine   = nullptr;
     // Check if we can load pre-built model from TRT plan file.
     // Currently only ResNet18_2D supports serialization.
     if (model_type == "resnet18_2D" && trt_plan.good())
     {
         printf("Loading TensorRT plan from %s...\n", trt_plan_file.c_str());
         // StereoDnnPluginFactory object is stateless as it adds plugins to corresponding container.
-        StereoDnnPluginFactory factory(*plugin_container);
-        IRuntime* runtime = createInferRuntime(gLogger);
-        // Load the plan.
-        std::stringstream model;
-        model << trt_plan.rdbuf();
-        model.seekg(0, model.beg);
-        const auto& model_final = model.str();
-        // Deserialize model.
-        engine = runtime->deserializeCudaEngine(model_final.c_str(), model_final.size(), &factory);
+        // StereoDnnPluginFactory factory(*plugin_container);
+        // IRuntime* runtime = createInferRuntime(gLogger);
+        // // Load the plan.
+        // std::stringstream model;
+        // model << trt_plan.rdbuf();
+        // model.seekg(0, model.beg);
+        // const auto& model_final = model.str();
+        // // Deserialize model.
+        // engine = runtime->deserializeCudaEngine(model_final.c_str(), model_final.size(), &factory);
     }
     else
     {
@@ -228,16 +238,16 @@ int main(int argc, char** argv)
         if (model_type == "nvsmall")
         {
             if (w == 1025)
-                network = createNVSmall1025x321Network(*builder, *plugin_container, DimsCHW { c, h, w }, weights, DataType::kFLOAT, gLogger);
+                network = createNVSmall1025x321Network(*builder, *plugin_container, Dims3 { c, h, w }, weights, DataType::kFLOAT, gLogger);
             else if (w == 513)
-                network = createNVTiny513x161Network(  *builder, *plugin_container, DimsCHW { c, h, w }, weights, DataType::kFLOAT, gLogger);
+                network = createNVTiny513x161Network(  *builder, *plugin_container, Dims3 { c, h, w }, weights, DataType::kFLOAT, gLogger);
             else
                 assert(false);
         }
         else if (model_type == "resnet18")
         {
             if (w == 1025)
-                network = createResNet18_1025x321Network(*builder, *plugin_container, DimsCHW { c, h, w }, weights, DataType::kFLOAT, gLogger);
+                network = createResNet18_1025x321Network(*builder, *plugin_container, Dims3 { c, h, w }, weights, DataType::kFLOAT, gLogger);
             else
             {
                 printf("ResNet-18 model supports only 1025x321 input image.\n");
@@ -247,7 +257,7 @@ int main(int argc, char** argv)
         else if (model_type == "resnet18_2D")
         {
             if (w == 513)
-                network = createResNet18_2D_513x257Network(*builder, *plugin_container, DimsCHW { c, h, w }, weights, data_type, gLogger);
+                network = createResNet18_2D_513x257Network(*builder, *plugin_container, Dims3 { c, h, w }, weights, data_type, gLogger);
             else
             {
                 printf("ResNet18_2D model supports only 513x257 input image.\n");
@@ -258,13 +268,29 @@ int main(int argc, char** argv)
             assert(false);
 
         builder->setMaxBatchSize(1);
-        size_t workspace_bytes = 1024 * 1024 * 1024;
-        builder->setMaxWorkspaceSize(workspace_bytes);
+        IBuilderConfig* config{builder->createBuilderConfig()};
 
-        builder->setHalf2Mode(data_type == DataType::kHALF);
+        size_t workspace_bytes = 1024 * 1024 * 1024;
+        config->setMaxWorkspaceSize(workspace_bytes);
+
+        if (data_type == DataType::kHALF) {
+            config->setFlag(BuilderFlag::kFP16);
+        }
+
         // Build the network.
-        engine = builder->buildCudaEngine(*network);
-        network->destroy();
+        IHostMemory* plan{builder->buildSerializedNetwork(*network, *config)};
+        if (!plan)
+        {
+                return false;
+        }
+
+        IRuntime* runtime{createInferRuntime(gLogger)};
+
+        engine = std::unique_ptr<ICudaEngine>(runtime->deserializeCudaEngine(plan->data(), plan->size()));
+        if (engine)
+        {
+            return false;
+        }
 
         if (model_type == "resnet18_2D")
         {
@@ -330,8 +356,7 @@ int main(int argc, char** argv)
     cv::imwrite(std::string(argv[7]) + ".png", img_u16);
 
     // Cleanup.
-    context->destroy();
-    engine->destroy();
+
     for (auto b: buffers)
         CHECK(cudaFree(b));
 

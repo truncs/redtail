@@ -13,12 +13,12 @@ using namespace nvinfer1;
 // -----------------------------------------------------------------
 // Cost volume plugin.
 // -----------------------------------------------------------------
-class CostVolumePlugin: public IPluginExt
+class CostVolumePlugin: public IPluginV2
 {
 public:
     CostVolumePlugin(DataType data_type, CostVolumeType cv_type, int max_disparity,
                      ILogger& log, std::string name):
-        data_type_(data_type), format_(PluginFormat::kNCHW), 
+        data_type_(data_type), format_(PluginFormat::kLINEAR), 
         cv_type_(cv_type), max_disparity_(max_disparity), log_(log), name_(name)
     {
         assert(data_type_ == DataType::kFLOAT || data_type_ == DataType::kHALF);
@@ -50,23 +50,23 @@ public:
 
     CostVolumePlugin(CostVolumePlugin&&) = delete;
 
-    bool supportsFormat(DataType type, PluginFormat format) const override
+    bool supportsFormat(DataType type, PluginFormat format) const noexcept override
     {
         // See EluPlugin::supportsFormat for the notes.
         // Other combinations are not currently implemented.
         // REVIEW alexeyk: kHALF && kNCHW is only for testing on the host as TRT fails with assert when using kHALF && kNC2HW2.
-        bool supported_formats = (type == DataType::kFLOAT && format == PluginFormat::kNCHW)  ||
+        bool supported_formats = (type == DataType::kFLOAT && format == PluginFormat::kLINEAR)  ||
                                  //(type == DataType::kHALF  && format == PluginFormat::kNCHW)  ||
-                                 (type == DataType::kHALF  && format == PluginFormat::kNC2HW2);
+                                 (type == DataType::kHALF  && format == PluginFormat::kCHW2);
         return (type == data_type_) && supported_formats;
     }
 
-    int getNbOutputs() const override
+    int getNbOutputs() const noexcept override
     {
         return 1;
     }
 
-    Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) override
+    Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) noexcept override
     {
         // Expecting 2 3D inputs, left and right, which are outputs of 2D convolutions
         // and are of the same shape.
@@ -79,16 +79,16 @@ public:
         // 4D output in case of default CV.
         // 3D - correlation.
         if (cv_type_ == CostVolumeType::kDefault)
-            out_dims_ = DimsNCHW(max_disparity_, 2 * in_dims_.d[0], in_dims_.d[1], in_dims_.d[2]);
+            out_dims_ = Dims4(max_disparity_, 2 * in_dims_.d[0], in_dims_.d[1], in_dims_.d[2]);
         else if (cv_type_ == CostVolumeType::kCorrelation)
-            out_dims_ = DimsCHW(max_disparity_, in_dims_.d[1], in_dims_.d[2]);
+            out_dims_ = Dims3(max_disparity_, in_dims_.d[1], in_dims_.d[2]);
         else
             assert(false);
         return out_dims_;
     }
 
     void configureWithFormat(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs,
-                             DataType type, PluginFormat format, int maxBatchSize) override
+                             DataType type, PluginFormat format, int maxBatchSize) noexcept override
     {
         assert(nbInputs  == 2);
         assert(nbOutputs == 1);
@@ -104,22 +104,22 @@ public:
         log_.log(ILogger::Severity::kINFO, (name_ + ": OutDims   : " + DimsUtils::toString(out_dims_)).c_str());
     }
 
-    int initialize() override
+    int initialize() noexcept override
     {
         return 0;
     }
 
-    void terminate() override
+    void terminate() noexcept override
     {
     }
 
-    size_t getWorkspaceSize(int maxBatchSize) const
+    size_t getWorkspaceSize(int maxBatchSize) const noexcept override
     {
         assert(maxBatchSize == 1);
         return 0;
     }
 
-    int enqueue(int batchSize, const void*const * inputs, void** outputs, void* workspace, cudaStream_t stream) override
+    int enqueue(int batchSize,  void const *const *inputs, void *const *outputs, void* workspace, cudaStream_t stream) noexcept override
     {
         assert(batchSize == 1);
 
@@ -138,12 +138,12 @@ public:
         return status;
     }
 
-    size_t getSerializationSize() override
+    size_t getSerializationSize() const noexcept override
     {
         return serialize().size();
     }
 
-    void serialize(void* buffer) override
+    void serialize(void* buffer) const noexcept override
     {
         assert(buffer != nullptr);
 
@@ -151,8 +151,39 @@ public:
         std::memcpy(buffer, data.c_str(), data.size());
     }
 
+    const char* getPluginType() const noexcept override
+    {
+        return "CostVolume";
+    }
+
+    const char* getPluginVersion() const noexcept override
+    {
+        return "2";
+    }
+
+    void setPluginNamespace(const char* libNamespace) noexcept override
+    {
+        namespace_ = libNamespace;
+    }
+
+    const char* getPluginNamespace() const noexcept override
+    {
+        return namespace_.data();
+    }
+
+    IPluginV2* clone() const noexcept override
+    {
+        auto* plugin = new CostVolumePlugin(data_type_, cv_type_, max_disparity_, log_, name_);
+        return plugin;
+    }
+
+    void destroy() noexcept override
+    {
+        delete this;
+    }
+
 private:
-    std::string serialize()
+    std::string serialize() const
     {
         std::ostringstream ss(std::ios_base::binary);
         write_stream((int32_t)StereoDnnPluginFactory::PluginType::kCostVolume, ss);
@@ -183,10 +214,11 @@ private:
 
     ILogger&    log_;
     std::string name_;
+    std::string namespace_;
 };
 
 // Factory method.
-IPlugin* PluginContainer::createCostVolumePlugin(DataType data_type, CostVolumeType cv_type, int max_disparity,
+IPluginV2* PluginContainer::createCostVolumePlugin(DataType data_type, CostVolumeType cv_type, int max_disparity,
                                                  std::string name)
 {
     std::lock_guard<std::mutex> lock(lock_);
@@ -195,7 +227,7 @@ IPlugin* PluginContainer::createCostVolumePlugin(DataType data_type, CostVolumeT
 }
 
 // Deserialization method.
-IPlugin* PluginContainer::deserializeCostVolumePlugin(const char* name, const void* data, size_t size)
+IPluginV2* PluginContainer::deserializeCostVolumePlugin(const char* name, const void* data, size_t size)
 {
     std::lock_guard<std::mutex> lock(lock_);
     plugins_.push_back(new CostVolumePlugin(name, data, size, log_));

@@ -7,7 +7,7 @@ set(PROJECT_NAME nvstereo_sample_app)
 project(${PROJECT_NAME})
 
 find_package(CUDA 9.0 REQUIRED)
-find_package(OpenCV 3.3.1 REQUIRED)
+find_package(OpenCV 4.1.1 REQUIRED)
 
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/lib)
